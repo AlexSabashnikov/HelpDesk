@@ -4,3 +4,235 @@
  * Фильтрация, сортировка, пагинация, изменение статусов
  * Работа с комментариями и историей изменений заявок
  */
+import apiClient from './axios.config' // Импортируем настроенный axios
+
+export const ticketsApi = {
+  // Тестовый метод для проверки авторизации
+  async checkAuth() {
+    const response = await apiClient.get('/auth/check')
+    return response.data
+  },
+  
+  // Тестовый метод для симуляции 401 ошибки
+  async simulateUnauthorized() {
+    // Удаляем токен для теста
+    localStorage.removeItem('auth_token')
+    const response = await apiClient.get('/tickets')
+    return response.data
+  },
+  
+  // Тестовый метод для симуляции 419 ошибки
+  async simulateCsrfError() {
+    // Удаляем CSRF токен для теста
+    localStorage.removeItem('csrf_token')
+    const response = await apiClient.post('/test-csrf')
+    return response.data
+  },
+
+  async getTickets(params) {
+    const { page = 1, limit = 3 } = params;
+    const allTickets = [ {
+          id: 1,
+          number: '1001',
+          subject: 'Проблемы\n сетевого\n подключения',
+          priority: 'high',
+          status: 'inProgress',
+          type: 'Удаленная помощь',
+          client: { name: 'Сбер №15' },
+          executor: { name: 'Иванов И.И.' },
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+          contactPerson: 'Сабашников Александр Евгеньевич',
+          phone: '+79535671806',
+          email: 'Sabashnikov@yandex.ru',
+          description: 'Невозможно\n подключиться\n к\n VPN,\n потому\n что\n провайдер\n Ростелеком',
+          workStart: '2025-12-23T09:00:00Z',
+          workEnd: '2025-12-23T12:00:00Z',
+          workCost: 6000,
+          requestMethod: 'WEB-портал',
+          distance: '5,3 км',
+          address: 'г. Нижний Новгород, ул. Алексеевская, д.8',
+        },
+        {
+          id: 2,
+          number: '1002',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'crit',
+          status: 'new',
+          client: { name: 'ПАО "АК БАРС" Банк' },
+          executor: { name: '-' },
+          address: 'ул. Алексеевская, 8',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-01-29T15:21:00Z',
+        },
+        {
+          id: 3,
+          number: '1003',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'assigned',
+          client: { name: 'Пятерочка 1839' },
+          executor: { name: 'Бакаринов В.В.' },
+          address: 'ул. Ульянова, 8',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-01-22T15:21:00Z',
+        },
+        {
+          id: 4,
+          number: '1004',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'medium',
+          status: 'stopped',
+          client: { name: 'Лента 182' },
+          executor: { name: 'Сабашников А.Е.' },
+          address: 'ул. Родионова, 178',
+          createdAt: '2025-11-05T15:21:00Z',
+          deadline: '2026-02-05T15:21:00Z',
+        },
+        {
+          id: 5,
+          number: '1005',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 6,
+          number: '1006',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 7,
+          number: '1007',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 8,
+          number: '1008',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 9,
+          number: '1009',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'rejected',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 10,
+          number: '1010',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 11,
+          number: '1011',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 12,
+          number: '1012',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 13,
+          number: '1013',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 14,
+          number: '1014',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+        {
+          id: 15,
+          number: '1015',
+          subject: 'Проблемы сетевого подключения',
+          priority: 'low',
+          status: 'completed',
+          client: { name: 'Пятерочка 1837' },
+          executor: { name: 'Менделеев Д.И.' },
+          address: 'ул. Белинского, 5',
+          createdAt: '2025-12-22T15:21:00Z',
+          deadline: '2026-02-22T15:21:00Z',
+        },
+      ]; 
+  
+    // Реальная пагинация
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginatedData = allTickets.slice(start, end);
+  
+    return {
+      data: paginatedData,  
+      total: allTickets.length,  
+      page,
+      limit,
+    }
+  }
+}
