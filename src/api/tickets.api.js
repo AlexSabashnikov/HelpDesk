@@ -4,31 +4,20 @@
  * Фильтрация, сортировка, пагинация, изменение статусов
  * Работа с комментариями и историей изменений заявок
  */
-import apiClient from './axios.config' // Импортируем настроенный axios
+
+
+/*import apiClient from './axios.config' // Импортируем настроенный axios
+
+// Tickets API
+export const ticketsApi = {
+  getAll: (params) => apiClient.get('/tickets', { params }),
+  getById: (id) => apiClient.get(`/tickets/${id}`),
+  create: (data) => apiClient.post('/tickets', data),
+  update: (id, data) => apiClient.put(`/tickets/${id}`, data),
+  delete: (id) => apiClient.delete(`/tickets/${id}`),
+}*/
 
 export const ticketsApi = {
-  // Тестовый метод для проверки авторизации
-  async checkAuth() {
-    const response = await apiClient.get('/auth/check')
-    return response.data
-  },
-  
-  // Тестовый метод для симуляции 401 ошибки
-  async simulateUnauthorized() {
-    // Удаляем токен для теста
-    localStorage.removeItem('auth_token')
-    const response = await apiClient.get('/tickets')
-    return response.data
-  },
-  
-  // Тестовый метод для симуляции 419 ошибки
-  async simulateCsrfError() {
-    // Удаляем CSRF токен для теста
-    localStorage.removeItem('csrf_token')
-    const response = await apiClient.post('/test-csrf')
-    return response.data
-  },
-
   async getTickets(params) {
     const { page = 1, limit = 3 } = params;
     const allTickets = [ {

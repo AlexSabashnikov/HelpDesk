@@ -7,6 +7,7 @@
 
 import axios from 'axios'
 import router from '@/router'
+import { clearAuthData } from '@/utils/auth.utils'
 
 class SessionHandler {
   constructor() {
@@ -33,9 +34,7 @@ class SessionHandler {
     console.log('✅ Session handler initialized')
   }
 
-  /**
-   * Настраивает перехватчики для axios
-   */
+  // Настройка перехватчиков для axios
   setupInterceptors() {
     // Перехватчик запросов
     axios.interceptors.request.use(
@@ -44,9 +43,9 @@ class SessionHandler {
         const requestId = this.generateRequestId(config)
         this.activeRequests.add(requestId)
         
-        // Добавляем CSRF токен из localStorage
-        const csrfToken = localStorage.getItem('csrf_token')
-        if (csrfToken) {
+        // CSRF токен из meta тега
+        const csrfToken = this.getCsrfTokenFromMeta()
+        if (csrfToken && this.requiresCsrfToken(config)) {
           config.headers['X-CSRF-TOKEN'] = csrfToken
         }
         
@@ -85,6 +84,19 @@ class SessionHandler {
     )
   }
 
+  // Получает CSRF токен из meta тега
+  getCsrfTokenFromMeta() {
+    const metaTag = document.querySelector('meta[name="csrf-token"]')
+    return metaTag?.getAttribute('content') || null
+  }
+
+  //Проверяет, нужен ли CSRF токен для запроса
+  requiresCsrfToken(config) {
+    // CSRF токен нужен для POST, PUT, DELETE, PATCH
+    const methodsRequiringCsrf = ['POST', 'PUT', 'DELETE', 'PATCH']
+    return methodsRequiringCsrf.includes(config.method?.toUpperCase())
+  }
+
   /**
    * Обрабатывает ошибки ответов
    */
@@ -97,19 +109,19 @@ class SessionHandler {
       return await this.handleCsrfError(config)
     }
     
-    // Ошибка 401 - Не авторизован (токен истек)
+    // Ошибка 401 - не авторизован (токен истек)
     if (response?.status === 401) {
       console.log('🔒 Unauthorized (401), logging out...')
       return await this.handleAuthError()
     }
     
-    // Ошибка 403 - Доступ запрещен
+    // Ошибка 403 - доступ запрещен
     if (response?.status === 403) {
       console.warn('🚫 Доступ запрещен (403)')
       router.push({ name: 'unauthorized' })
     }
     
-    // Ошибка 429 - Слишком много запросов
+    // Ошибка 429 - слишком много запросов
     if (response?.status === 429) {
       const retryAfter = response.headers['retry-after'] || 5
       console.warn(`⏳ Слишком много запросов. Повтор через ${retryAfter} секунд`)
@@ -124,9 +136,7 @@ class SessionHandler {
     }
   }
 
-  /**
-   * Обрабатывает ошибку CSRF (419)
-   */
+  // Обрабатывает ошибку CSRF (419)
   async handleCsrfError(originalConfig) {
     // Если уже обновляем CSRF, добавляем запрос в очередь
     if (this.isRefreshingCsrf) {
@@ -138,75 +148,66 @@ class SessionHandler {
     }
 
     this.isRefreshingCsrf = true
-    console.log('🔄 Refreshing CSRF token...')
+    console.log('🔄 CSRF токен истек, получаем новый из meta...')
     
     try {
-      // Обновляем CSRF токен через API запрос
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-      const response = await axios.get('/api/csrf-token', {
-        baseURL,
-        withCredentials: true,
-        timeout: 5000
-      })
+      const newCsrfToken = this.getCsrfTokenFromMeta()
       
-      const csrfToken = response.data.csrf_token
+      if (!newCsrfToken) {
+        throw new Error('CSRF токен не найден в meta')
+      }
       
-      // Сохраняем новый токен в localStorage
-      localStorage.setItem('csrf_token', csrfToken)
+      console.log('✅ Новый CSRF токен найден в meta: ', newCsrfToken)
       
-      console.log('✅ CSRF token refreshed')
-      
-      // Повторяем оригинальный запрос с новым токеном
-      originalConfig.headers['X-CSRF-TOKEN'] = csrfToken
+      // Обновляем заголовок в оригинальном запросе
+      originalConfig.headers['X-CSRF-TOKEN'] = newCsrfToken
       
       this.isRefreshingCsrf = false
       
       // Выполняем запросы из очереди
       this.processCsrfQueue()
       
+      // Повторяем оригинальный запрос с новым токеном
       return axios(originalConfig)
-    } catch (refreshError) {
+    } catch (error) {
       this.isRefreshingCsrf = false
       this.csrfQueue = []
       
-      console.error('❌ Failed to refresh CSRF token:', refreshError.message)
+      console.error('❌ Ошибка получения CSRF токена из meta:', error.message)
       
-      // Если не удалось обновить CSRF - выходим
+      // Если не удалось получить CSRF - выходим
       await this.handleAuthError()
       
-      return Promise.reject(refreshError)
+      return Promise.reject(error)
     }
   }
 
-  /**
-   * Обрабатывает ошибку авторизации (401)
-   */
+  // Обработка ошибки авторизации (401)
   async handleAuthError() {
-    console.log('🚪 Logging out due to auth error...')
-    
     // Очищаем данные авторизации
-    this.clearAuthData()
+    clearAuthData(true)
+
+    // Эмитируем событие для уведомлений
+    const event = new CustomEvent('auth-notification', {
+      detail: { type: 'sessionExpired' }
+    })
+    window.dispatchEvent(event)
     
     // Редирект на страницу входа
     router.push({ name: 'login' })
   }
 
-  /**
-   * Очищает данные авторизации
-   */
+  // Очищает данные авторизации
   clearAuthData() {
     // Очищаем localStorage
     localStorage.removeItem('auth_token')
-    localStorage.removeItem('csrf_token')
     localStorage.removeItem('user')
     localStorage.removeItem('refresh_token')
     
-    console.log('🧹 Auth data cleared')
+    console.log('🧹 Данные авторизации очищены')
   }
 
-  /**
-   * Обрабатывает очередь запросов после обновления CSRF
-   */
+  // Обработка очереди запросов после обновления CSRF
   processCsrfQueue() {
     this.csrfQueue.forEach(promise => {
       promise.resolve()
@@ -214,23 +215,17 @@ class SessionHandler {
     this.csrfQueue = []
   }
 
-  /**
-   * Генерирует уникальный ID для запроса
-   */
+  // Генерирует уникальный ID для запроса
   generateRequestId(config) {
     return `${config.method}_${config.url}_${Date.now()}_${Math.random()}`
   }
 
-  /**
-   * Получает количество активных запросов
-   */
+  // Получает количество активных запросов
   getActiveRequestsCount() {
     return this.activeRequests.size
   }
 
-  /**
-   * Сбрасывает все флаги и очереди
-   */
+  // Сбрасывает все флаги и очереди
   reset() {
     this.activeRequests.clear()
     this.isRefreshingCsrf = false

@@ -52,11 +52,10 @@ const handleSubmit = () => {
 
 <style scoped>
 .auth-page {
-  min-height: calc(100vh - 50px); 
+  min-height: calc(100vh - 200px); 
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #eaeaea;
 }
 
 .auth-card {
@@ -65,7 +64,7 @@ const handleSubmit = () => {
   background: #ffffff;
   border-radius: 8px;
   padding: 30px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.449);
 }
 
 .auth-title {

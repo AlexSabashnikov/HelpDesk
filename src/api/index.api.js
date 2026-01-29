@@ -4,22 +4,8 @@
  */
 
 import apiClient from './axios.config'
-
-// Auth API
-export const authApi = {
-  login: (credentials) => apiClient.post('/login', credentials),
-  logout: () => apiClient.post('/logout'),
-  refreshCsrf: () => apiClient.get('/csrf-token'),
-}
-
-// Tickets API
-export const ticketsApi = {
-  getAll: (params) => apiClient.get('/tickets', { params }),
-  getById: (id) => apiClient.get(`/tickets/${id}`),
-  create: (data) => apiClient.post('/tickets', data),
-  update: (id, data) => apiClient.put(`/tickets/${id}`, data),
-  delete: (id) => apiClient.delete(`/tickets/${id}`),
-}
+//import { ticketsApi } from './tickets.api'
+//import {authApi} from './auth.api'
 
 // Companies API
 export const companiesApi = {

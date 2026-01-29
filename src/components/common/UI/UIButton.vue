@@ -37,18 +37,18 @@ defineProps({
 .variant-crit {
   background: #ffdbdb;
   color: #d80000;
-  border-color: #d80000;
+  border: 2px solid #d80000;
 }
 
 .variant-new {
   background: #d8dbff;
   color: #08105f;
-  border-color: #08105f;
+  border: 2px solid #08105f;
 }
 
 .variant-near {
   background: #fff2d8;
   color: #cd8900;
-  border-color: #cd8900;
+  border: 2px solid #cd8900;
 }
 </style>

@@ -9,6 +9,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import apiClient from '@/api/axios.config'
 import router from '@/router'
+import { emitAuthEvent, clearAuthData as clearAuthDataUtil } from '@/utils/auth.utils'
 
 export const useAuthStore = defineStore('auth', () => {
   // Состояние
@@ -25,24 +26,21 @@ export const useAuthStore = defineStore('auth', () => {
   const mockUsers = {
     'admin@test.com': { 
       id: 1, 
-      name: 'Администратор', 
+      name: 'Сабашников А.Е.', 
       email: 'admin@test.com',
       role: 'admin',
-      permissions: ['all']
     },
     'engineer@test.com': { 
       id: 2, 
-      name: 'Инженер Петров', 
+      name: 'Петров Е.А.', 
       email: 'engineer@test.com',
       role: 'engineer',
-      permissions: ['view_tickets', 'edit_tickets']
     },
     'client@test.com': { 
       id: 3, 
-      name: 'Клиент Иванов', 
+      name: 'Иванов Г.К.', 
       email: 'client@test.com',
       role: 'client',
-      permissions: ['view_own_tickets', 'create_tickets']
     }
   }
 
@@ -68,18 +66,17 @@ export const useAuthStore = defineStore('auth', () => {
           // Редирект по роли
           redirectByRole(foundUser.role)
           // Вызываем уведомление
-          console.log("УВЕДОМЛЕНИЕ ЛОГИН")
           emitAuthEvent('loginSuccess')
 
           resolve({ 
             user: foundUser, 
             accessToken: mockToken,
-            expiresIn: 3600 // 1 час для совместимости
+            expiresIn: 3600
           })
         } else {
           reject(new Error('Неверные учетные данные'))
         }
-      }, 1000) // Имитация задержки сети
+      }, 1000)
     })
   }
 
@@ -130,6 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Самостоятельный выход пользователя (пока не используется)
   const logout = async () => {
     try {
       if (token.value) {
@@ -145,9 +143,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   const fetchCsrfToken = async () => {
     try {
-      const response = await apiClient.get('/csrf-token')
-      csrfToken.value = response.data.csrf_token
-      localStorage.setItem('csrf_token', csrfToken.value)
+      // Читаем токен из meta
+      const csrfMeta = document.querySelector('meta[name="csrf-token"]')
+      if (!csrfMeta) {
+        throw new Error('CSRF meta tag not found')
+      }
+    
+      csrfToken.value = csrfMeta.getAttribute('content')
+      console.log('✅ CSRF токен загружен из meta:', csrfToken.value)
+    
       return csrfToken.value
     } catch (error) {
       console.error('Ошибка получения CSRF токена:', error)
@@ -157,14 +161,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   const clearAuthData = () => {
     // Вызываем уведомление
-    emitAuthEvent('sessionExpired')
+    clearAuthDataUtil(true)
     user.value = null
     token.value = null
-    csrfToken.value = null
     
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('csrf_token')
-    localStorage.removeItem('user')
+    //localStorage.removeItem('auth_token')
+    //localStorage.removeItem('user')
     
   }
 
@@ -177,21 +179,11 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         token.value = savedToken
         user.value = JSON.parse(savedUser)
-        csrfToken.value = localStorage.getItem('csrf_token')
       } catch (error) {
         console.error('Ошибка инициализации авторизации:', error)
         clearAuthData()
       }
     }
-  }
-
-  // Новая функция для эмитации событий аутентификации
-  const emitAuthEvent = (eventType) => {
-    // Создаем кастомное событие, которое будет перехвачено компонентом уведомлений
-    const event = new CustomEvent('auth-notification', {
-      detail: { type: eventType }
-    })
-    window.dispatchEvent(event)
   }
 
   return {
@@ -211,6 +203,5 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuthData,
     initialize,
     mockLogin, // УДАЛИТЬ
-    emitAuthEvent
   }
 })

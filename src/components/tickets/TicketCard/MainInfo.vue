@@ -5,7 +5,6 @@
     Валидация обязательных полей, автосохранение
 -->
 
-<!-- src/components/tickets/TicketCard/MainInfo.vue -->
 <template>
   <div class="main-info-section">
     <div class="section-header">
@@ -165,8 +164,8 @@ const truncateText = (text, maxLength) => {
 
 <style scoped>
 .main-info-section {
-  background: #f8f9fa;
-  border: 1px solid #aaaaaa;
+  background: #fcfcfc;
+  border: 1px solid #031432;
   border-radius: 12px;
   overflow: hidden; /* Предотвращает выход элементов за границы */
   box-sizing: border-box;
@@ -180,9 +179,8 @@ const truncateText = (text, maxLength) => {
   justify-content: space-between;
   align-items: center;
   padding: 5px 10px;
-  border-bottom: 1px solid #aaaaaa;
   color: white;
-  border-radius: 12px 12px 0 0;
+  border-radius: 10px 10px 0 0;
   background: #031432;
   box-sizing: border-box;
 }
@@ -200,7 +198,7 @@ const truncateText = (text, maxLength) => {
   grid-template-columns: 250px 150px 150px; 
   align-items: stretch;
   padding: 0 10px;
-  background: white;
+  background: #fcfcfc;
   box-sizing: border-box;
   width: 100%;
   gap: 0;
@@ -250,7 +248,7 @@ const truncateText = (text, maxLength) => {
   align-items: center;
   justify-content: center;
   padding: 2px 16px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
   min-width: 135px;
@@ -283,9 +281,9 @@ const truncateText = (text, maxLength) => {
 
 .info-value {
   color: #212529;
-  background-color: #e8f1ff;
-  border: 1px solid rgb(197, 197, 197);
-  border-radius: 10px;
+  background-color: #fcfcfc;
+  border: 1px solid rgb(152, 152, 152);
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 400;
   padding: 2px 10px;
@@ -312,8 +310,8 @@ const truncateText = (text, maxLength) => {
 }
 
 .priority-medium {
-  background: #fffbbf;
-  color: #e9da00;
+  background: #fffcd6;
+  color: #ccbe00;
   border: 2px solid #e9da00;
 }
 
@@ -368,7 +366,7 @@ const truncateText = (text, maxLength) => {
 /* Только для чтения блоки */
 .readonly-block {
   padding: 10px;
-  background: white;
+  background: #fcfcfc;
   box-sizing: border-box;
 }
 
@@ -401,7 +399,7 @@ const truncateText = (text, maxLength) => {
   font-size: 14px;
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px solid rgb(179, 179, 179);
+  border: 1px solid rgb(152, 152, 152);
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;

@@ -4,7 +4,6 @@
     История изменений, комментарии, прикреплённые файлы
 -->
 
-<!-- src/components/tickets/TicketCardModal.vue -->
 <template>
   <div v-if="visible" class="modal-overlay" @click.self="closeModal">
     <div class="modal-container">

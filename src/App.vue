@@ -1,8 +1,8 @@
 <template>
+  <SessionNotifications />
+
+  <div v-if="isAppReady">
   <!-- Используем разные лейауты в зависимости от маршрута -->
-  <div>
-    <SessionNotifications />
-    
     <AuthLayout v-if="isAuthRoute">
       <RouterView />
     </AuthLayout>
@@ -11,16 +11,24 @@
       <RouterView />
     </MainLayout>
   </div>
+
+  <!-- Слот для состояния загрузки -->
+  <div class="custom-loading">
+    <div class="spinner"></div>
+    <span>Загрузка...</span>
+  </div>
 </template>
 
 <script setup>
-import { computed, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, watch, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import SessionNotifications from '@/components/notifications/SessionNotifications.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import AuthLayout from './layouts/AuthLayout.vue'
 
-const route = useRoute()
+const route = useRoute() // Чтение маршрутов
+const router = useRouter() // Управление маршрутизацией
+const isAppReady = ref(false) // Флаг готовности приложения
 
 const isAuthRoute = computed(() => {
   const authPaths = [
@@ -30,6 +38,12 @@ const isAuthRoute = computed(() => {
   ]
 
   return authPaths.includes(route.path)
+})
+
+router.isReady().then(() => {
+  // Когда приложение готово загрузиться AuthLayout или MainLayout
+  isAppReady.value = true
+  console.log('✅ Router ready, current route:', route.path)
 })
 
 // Для отладки

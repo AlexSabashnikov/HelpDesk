@@ -41,11 +41,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+//import { useRouter, RouterLink } from 'vue-router'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import { useAuthStore } from '@/stores/auth.store'
 
-const router = useRouter()
+//const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({ login: '', password: '', remember: false })
@@ -55,13 +55,15 @@ const showPassword = ref(false)
 
 onMounted(async () => {
   try {
-    // Попробуем получить CSRF токен, но не падаем если сервер не доступен
-    await authStore.fetchCsrfToken?.()
+    // Проверяем наличие CSRF в meta
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]')
+    if (!csrfMeta) {
+      console.warn('⚠️ CSRF meta тег не найден при загрузке страницы')
+    } else {
+      console.log('✅ CSRF токен получен при загрузке страницы')
+    }
   } catch (error) {
-    // Сервер не доступен - это нормально при первой загрузке
-    console.log('ℹ️ Backend not available, CSRF will be fetched on login attempt ', error)
-    // Не показываем ошибку пользователю
-    errorMessage.value = ''
+    console.log('ℹ️ Error checking CSRF token:', error)
   }
 })
 
@@ -70,29 +72,17 @@ async function handleLogin() {
   loading.value = true
 
   try {
-    await authStore.login({
+    // Подготовка данных для запроса
+    const credentials = {
       login: form.login.trim(),
+      email: form.login.trim(),
       password: form.password,
       remember: form.remember,
-    })
-  } catch (err) {
-    if (err?.response?.status === 419) {
-      try {
-        await authStore.refreshCsrfToken()
-        await authStore.login({
-          login: form.login.trim(),
-          password: form.password,
-          remember: form.remember,
-        })
-        router.push('/')
-        return
-      } catch {
-        errorMessage.value = 'Сессия истекла. Повторите вход.'
-      }
-    } else {
-      errorMessage.value =
-        err?.response?.data?.message || 'Ошибка авторизации'
     }
+    // Отправляем запрос
+    await authStore.login(credentials)
+  } catch (err) {
+    errorMessage.value = err?.response?.data?.message || 'Ошибка авторизации'
   } finally {
     loading.value = false
   }
