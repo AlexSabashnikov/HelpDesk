@@ -3,10 +3,10 @@
  * Все AJAX запросы должны идти через этот файл
  */
 
-import apiClient from './axios.config'
-//import { ticketsApi } from './tickets.api'
-//import {authApi} from './auth.api'
+export { ticketsApi } from './tickets.api'
+export { authApi } from './auth.api'
 
+/*
 // Companies API
 export const companiesApi = {
   getAll: (params) => apiClient.get('/companies', { params }),
@@ -24,4 +24,4 @@ export const usersApi = {
 export const analyticsApi = {
   getDashboard: () => apiClient.get('/analytics/dashboard'),
   getReports: (params) => apiClient.get('/analytics/reports', { params }),
-}
+}*/

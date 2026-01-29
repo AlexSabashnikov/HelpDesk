@@ -8,6 +8,7 @@
 import axios from 'axios'
 import router from '@/router'
 import { clearAuthData } from '@/utils/auth.utils'
+import { authApi } from '@/api/index.api'
 
 class SessionHandler {
   constructor() {
@@ -90,6 +91,16 @@ class SessionHandler {
     return metaTag?.getAttribute('content') || null
   }
 
+  // Обновляет CSRF токен в meta теге
+  updateCsrfTokenInMeta(newToken) {
+    const metaTag = document.querySelector('meta[name="csrf-token"]')
+    if (metaTag) {
+      metaTag.setAttribute('content', newToken)
+      console.log('✅ CSRF токен обновлен в meta теге')
+      return true
+    }
+  }
+
   //Проверяет, нужен ли CSRF токен для запроса
   requiresCsrfToken(config) {
     // CSRF токен нужен для POST, PUT, DELETE, PATCH
@@ -121,64 +132,68 @@ class SessionHandler {
       router.push({ name: 'unauthorized' })
     }
     
-    // Ошибка 429 - слишком много запросов
-    if (response?.status === 429) {
-      const retryAfter = response.headers['retry-after'] || 5
-      console.warn(`⏳ Слишком много запросов. Повтор через ${retryAfter} секунд`)
-      await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
-      return axios(config)
-    }
-    
     // Сетевая ошибка (сервер не доступен)
     if (!response && error.code === 'ERR_NETWORK') {
       console.error('🌐 Network error:', error.message)
-      // Можно показать уведомление пользователю
     }
   }
 
   // Обрабатывает ошибку CSRF (419)
-  async handleCsrfError(originalConfig) {
+  async handleCsrfError(error) {
+    const originalConfig = error.config
+    
     // Если уже обновляем CSRF, добавляем запрос в очередь
     if (this.isRefreshingCsrf) {
-      return new Promise((resolve) => {
-        this.csrfQueue.push({ resolve })
-      }).then(() => {
-        return axios(originalConfig)
+      return new Promise((resolve, reject) => {
+        this.csrfQueue.push({ 
+          resolve, 
+          reject,
+          config: originalConfig 
+        })
       })
     }
 
     this.isRefreshingCsrf = true
-    console.log('🔄 CSRF токен истек, получаем новый из meta...')
+    console.log('🔄 CSRF токен истек, запрашиваем новый с сервера...')
     
     try {
-      const newCsrfToken = this.getCsrfTokenFromMeta()
+      // Запрашиваем новый CSRF токен с сервера через authApi
+      const response = await authApi.refreshCsrf()
+      const newCsrfToken = response.data.csrf_token || response.data.token
       
       if (!newCsrfToken) {
-        throw new Error('CSRF токен не найден в meta')
+        throw new Error('CSRF токен не получен от сервера')
       }
       
-      console.log('✅ Новый CSRF токен найден в meta: ', newCsrfToken)
+      console.log('✅ Новый CSRF токен получен с сервера:', newCsrfToken)
+
+      // Обновляем токен в meta теге
+      this.updateCsrfTokenInMeta(newCsrfToken)
       
       // Обновляем заголовок в оригинальном запросе
       originalConfig.headers['X-CSRF-TOKEN'] = newCsrfToken
       
       this.isRefreshingCsrf = false
       
-      // Выполняем запросы из очереди
-      this.processCsrfQueue()
+      // Выполняем запросы из очереди с новым токеном
+      this.processCsrfQueue(newCsrfToken)
       
       // Повторяем оригинальный запрос с новым токеном
       return axios(originalConfig)
-    } catch (error) {
+    } catch (refreshError) {
       this.isRefreshingCsrf = false
-      this.csrfQueue = []
+      console.error('❌ Ошибка получения CSRF токена с сервера:', refreshError.message)
+      const isLoginRequest = originalConfig.url && 
+        (originalConfig.url.includes('/login') || originalConfig.url.includes('/auth'))
       
-      console.error('❌ Ошибка получения CSRF токена из meta:', error.message)
+      if (!isLoginRequest) {
+        await this.handleAuthError()
+      }
       
-      // Если не удалось получить CSRF - выходим
-      await this.handleAuthError()
+      // Отклоняем все запросы в очереди
+      this.rejectCsrfQueue(refreshError)
       
-      return Promise.reject(error)
+      return Promise.reject(refreshError)
     }
   }
 
