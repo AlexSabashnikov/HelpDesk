@@ -75,9 +75,7 @@ async function handleLogin() {
     // Подготовка данных для запроса
     const credentials = {
       login: form.login.trim(),
-      email: form.login.trim(),
       password: form.password,
-      remember: form.remember,
     }
     // Отправляем запрос
     await authStore.login(credentials)

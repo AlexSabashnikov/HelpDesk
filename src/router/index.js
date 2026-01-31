@@ -10,6 +10,7 @@ import { createPinia } from 'pinia'
 // Импортируем маршруты из разных файлов
 import authRoutes from './auth.routes.js'
 import adminRoutes from './admin.routes.js'
+import dispatcherRoutes from './dispatcher.routes.js'
 import engineerRoutes from './engineer.routes.js'
 import clientRoutes from './client.routes.js'
 
@@ -25,7 +26,9 @@ const routes = [
   ...authRoutes,
   
   // Защищенные маршруты по ролям
+  ...dispatcherRoutes,
   ...adminRoutes,
+
   ...engineerRoutes,
   ...clientRoutes,
   
@@ -52,6 +55,20 @@ const router = createRouter({
 })
 
 const pinia = createPinia()
+
+const getUserRole = () => {
+  let userRole = null
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      userRole = user.role
+    } catch (e) {
+      console.error('Error parsing user for role check:', e)
+    }
+  }
+  return userRole
+}
 
 // Глобальный навигационный guard
 router.beforeEach(async (to, from, next) => {
@@ -80,10 +97,13 @@ router.beforeEach(async (to, from, next) => {
       // Небольшая задержка для гарантии обновления реактивности
       await new Promise(resolve => setTimeout(resolve, 50))
       // Редирект по роли
-      const userRole = authStore.userRole
+      const userRole = getUserRole()
+      console.log("Роль перед редиректом ", userRole)
       switch (userRole) {
         case 'admin':
           return next({ name: 'admin-tickets' })
+        case 'dispatcher':
+          return next({ name: 'dispatcher-tickets' })
         case 'engineer':
           return next({ name: 'engineer-tickets' })
         case 'client':
@@ -107,10 +127,9 @@ router.beforeEach(async (to, from, next) => {
       return next({ name: 'login' })
     }
       // Проверяем, что данные в AuthStore совпадают с localStorage
-    const savedToken = localStorage.getItem('auth_token')
     const savedUser = localStorage.getItem('user')
   
-    if (!savedToken || !savedUser) {
+    if (!savedUser) {
       console.log('⚠️ Данные авторизации исчезли из LocalStorage, очищаем сессию')
       authStore.clearAuthData()
       return next({ name: 'login' })
@@ -134,9 +153,9 @@ router.beforeEach(async (to, from, next) => {
     
     
     const requiredRole = to.meta.role
+    let userRole = getUserRole()
     if (requiredRole) {
-      const userRole = authStore.userRole
-      
+    console.log(userRole, "  ", requiredRole)
       if (userRole !== requiredRole) {
         console.log(`🚫 Пользователь не имеет прав, редирект на unauthorized`)
         return next({ name: 'unauthorized' })

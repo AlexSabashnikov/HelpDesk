@@ -11,6 +11,7 @@
       <!-- Имя панель администратора -->
       <div class="name-of-interface">
         <slot v-if="userRole ==='admin'">Панель администратора</slot>
+        <slot v-if="userRole ==='dispatcher'">Панель диспетчера</slot>
         <slot v-if="userRole ==='client'">Клиентский портал</slot>
         <slot v-if="userRole ==='engineer'">Панель инженера</slot>
       </div>

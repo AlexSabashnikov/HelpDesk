@@ -39,6 +39,9 @@ if (userStr) {
       case 'admin':
         userRoleStr = "Администратор"
         break
+      case 'dispatcher':
+        userRoleStr = "Диспетчер"
+        break
       case 'engineer':
         userRoleStr = "Инженер"
         break

@@ -87,6 +87,72 @@
         </li>
       </ul>
 
+      <!-- Меню для диспетчера -->
+      <ul v-if="userRole === 'dispatcher'" class="nav-list">
+        <!-- Заявки -->
+        <li class="nav-item">
+          <div class="nav-section" @click="toggleSection('tickets')">
+            <span class="nav-text">📋 Заявки</span>
+            <span class="arrow">{{ isOpen.tickets ? '▲' : '▼' }}</span>
+          </div>
+          <ul v-if="isOpen.tickets" class="submenu">
+            <li>
+              <RouterLink to="/dispatcher/tickets" class="nav-link">
+                Все заявки
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/dispatcher/tickets/create" class="nav-link">
+                Создать заявку
+              </RouterLink>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Справочники -->
+        <li class="nav-item">
+          <div class="nav-section" @click="toggleSection('directories')">
+            <span class="nav-text">📚 Справочники</span>
+            <span class="arrow">{{ isOpen.directories ? '▲' : '▼' }}</span>
+          </div>
+          <ul v-if="isOpen.directories" class="submenu">
+            <li>
+              <RouterLink
+                to="/dispatcher/directories/companies"
+                class="nav-link"
+              >
+                Компании
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/dispatcher/directories/users" class="nav-link">
+                Пользователи
+              </RouterLink>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Аналитика -->
+        <li class="nav-item">
+          <div class="nav-section" @click="toggleSection('analytics')">
+            <span class="nav-text">📊 Аналитика</span>
+            <span class="arrow">{{ isOpen.analytics ? '▲' : '▼' }}</span>
+          </div>
+          <ul v-if="isOpen.analytics" class="submenu">
+            <li>
+              <RouterLink to="/dispatcher/analytics/general" class="nav-link">
+                Общая аналитика
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/dispatcher/analytics/reports" class="nav-link">
+                Отчеты
+              </RouterLink>
+            </li>
+          </ul>
+        </li>
+      </ul>
+
       <!-- Меню для клиента -->
       <ul v-if="userRole === 'client'" class="nav-list">
         <!-- Заявки -->
@@ -197,6 +263,12 @@ const initializeOpenSections = () => {
       directories: false,
       analytics: false,
     }
+  } else if (userRole === 'dispatcher') {
+    isOpen.value = {
+      tickets: false,
+      directories: false,
+      analytics: false,
+    }
   } else if (userRole === 'engineer') {
     isOpen.value = {
       tickets: false,
@@ -226,7 +298,9 @@ const toggleSidebar = () => {
     if (currentPath.includes(`${rolePrefix}tickets`)) {
       if (userRole === 'admin') {
         isOpen.value.tickets = true
-      } else if (userRole === 'engineer') {
+      } else if (userRole === 'dispatcher') {
+        isOpen.value.tickets = true }
+      else if (userRole === 'engineer') {
         isOpen.value.tickets = true
       } else if (userRole === 'client') {
         isOpen.value.myTickets = true

@@ -30,10 +30,24 @@
 
 <script setup>
 import UIButton from '@/components/common/UI/UIButton.vue'
+import { useAuthStore } from '@/stores/auth.store'
+
+const authStore = useAuthStore()
 
 // Заглушки — реальная логика будет через router + backend
 const goHome = () => {
   console.log('Переход на главную страницу в зависимости от роли')
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      let userRole = user.role
+      console.log("userRole ", userRole)
+      authStore.redirectByRole(userRole)
+    } catch (e) {
+      console.error('Error parsing user for role check:', e)
+    }
+  }
 }
 
 const requestAccess = () => {
@@ -46,8 +60,7 @@ const requestAccess = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: #f3f4f6;
+  min-height: 70vh;
 }
 
 .unauthorized-card {
@@ -57,7 +70,7 @@ const requestAccess = () => {
   max-width: 480px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.582);
 }
 
 .status-code {

@@ -91,8 +91,10 @@
       v-if="selectedTicket"
       :visible="showModal"
       :ticket="selectedTicket"
+      :mode="currentMode"
       @close="closeModal"
       @edit="handleEditTicket"
+      @save="handleSaveTicket"
     />
   </div>
 </template>
@@ -152,6 +154,45 @@ const columns = [
   { key: 'edit', title: '', width: '160px' },
 ]
 
+// Добавляем режим
+const currentMode = ref('view') // 'view' или 'edit'
+
+// Обработчик редактирования из кнопки в таблице
+const handleEdit = (row) => {
+  // Проверяем роль пользователя
+  let userRole = 'guest'
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      userRole = user.role
+    } catch (e) {
+      console.error('Error parsing user for role check:', e)
+    }
+  }
+
+  // Проверяем, имеет ли пользователь права администратора
+  if (userRole === 'admin') {
+    selectedTicket.value = {
+      ...row,
+      type: row.type,
+      contactPerson: row.contactPerson,
+      phone: row.phone,
+      email: row.email,
+      description: row.description,
+      workStart: row.workStart,
+      workEnd: row.workEnd,
+      workCost: row.workCost,
+      requestMethod: row.requestMethod,
+      distance: row.distance,
+    }
+    currentMode.value = 'edit' // Устанавливаем режим редактирования
+    showModal.value = true
+  } else {
+    alert('У вас нет прав для редактирования заявок')
+  }
+}
+
 // Обработчик клика по строке таблицы
 const handleRowClick = (row) => {
   selectedTicket.value = {
@@ -167,24 +208,29 @@ const handleRowClick = (row) => {
     requestMethod: row.requestMethod,
     distance: row.distance,
   }
+  currentMode.value = 'view' // Устанавливаем режим просмотра
   showModal.value = true
   emit('rowClick', row)
 }
 
-// Обработчик закрытия модального окна
+// Обработчик сохранения
+const handleSaveTicket = (updatedTicket) => {
+  // Здесь будет логика сохранения изменений
+  console.log('Сохранение заявки:', updatedTicket)
+  emit('save', updatedTicket)
+  currentMode.value = 'view' // Возвращаемся в режим просмотра
+}
+
+// При закрытии модального окна сбрасываем режим
 const closeModal = () => {
   showModal.value = false
   selectedTicket.value = null
+  currentMode.value = 'view'
 }
 
 // Обработчик редактирования из модального окна
 const handleEditTicket = (ticket) => {
   closeModal()
-  emit('edit', ticket)
-}
-
-// Обработчик редактирования из кнопки в таблице
-const handleEdit = (ticket) => {
   emit('edit', ticket)
 }
 

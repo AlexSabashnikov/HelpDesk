@@ -13,7 +13,7 @@
   </div>
 
   <!-- Слот для состояния загрузки -->
-  <div class="custom-loading">
+  <div v-if="!isAppReady" class="custom-loading">
     <div class="spinner"></div>
     <span>Загрузка...</span>
   </div>

@@ -10,12 +10,17 @@
       <!-- Шапка модального окна -->
       <div class="modal-header">
         <div class="header-left">
-          <h2 class="modal-title">Режим просмотра</h2>
+          <h2 class="modal-title">{{ mode === 'view' ? 'Режим просмотра' : 'Режим редактирования' }}</h2>
         </div>
         <div class="header-right">
           <button class="history-btn" @click="showHistory" title="История изменений">
             📜 История изменений
           </button>
+          <template v-if="mode==='edit'">
+            <button class="save-btn" @click="saveChanges" title="Сохранить изменения">
+              💾 Сохранить изменения
+            </button>
+          </template>
           <button class="close-btn" @click="closeModal" title="Закрыть">✕</button>
         </div>
       </div>
@@ -25,14 +30,36 @@
         <!-- Основная информация о заявке -->
         <div class="ticket-sections-one">
           <!-- Блок основной информации -->
-          <MainInfo :ticket="ticket" :is-overdue="isOverdue" @edit="handleEdit" />
+          <MainInfo 
+            :ticket="ticket" 
+            :mode="mode"
+            :user-role="userRole"
+            @fieldChange="handleFieldChange" 
+            />
 
           <!-- Блок исполнения -->
-          <ExecutionBlock :ticket="ticket" @edit="handleEdit" />
+          <ExecutionBlock 
+            :ticket="ticket"
+            :mode="mode"
+            :user-role="userRole"
+            @fieldChange="handleFieldChange"
+            />
         </div>
         <div class="ticket-sections-two">
+          <!-- Блок местоположения -->
+          <LocationBlock 
+            :ticket="ticket"
+            :mode="mode"
+            :user-role="userRole"
+            @fieldChange="handleFieldChange"
+            />
           <!-- Блок информации о клиенте -->
-          <ClientInfo :ticket="ticket" @edit="handleEdit" />
+          <ClientInfo 
+            :ticket="ticket" 
+            :mode="mode"
+            :user-role="userRole"
+            @fieldChange="handleFieldChange" 
+            />
         </div>
 
         <!-- Комментарии (статичный блок) -->
@@ -58,10 +85,11 @@
 </template>
 
 <script setup>
-import { computed, defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, ref, watch } from 'vue'
 import MainInfo from '@/components/tickets/TicketCard/MainInfo.vue'
 import ExecutionBlock from '@/components/tickets/TicketCard/ExecutionBlock.vue'
 import ClientInfo from '@/components/tickets/TicketCard/ClientInfo.vue'
+import LocationBlock from '@/components/tickets/TicketCard/LocationBlock.vue'
 
 const props = defineProps({
   visible: {
@@ -91,28 +119,56 @@ const props = defineProps({
       requestMethod: '',
     }),
   },
+  mode: {
+    type: String,
+    default: 'view', // 'view' или 'edit'
+    validator: (value) => ['view', 'edit'].includes(value),
+  },
 })
 
-const emit = defineEmits(['close', 'edit', 'delete'])
+const emit = defineEmits(['close', 'edit', 'save', 'delete'])
 
-const isOverdue = computed(() => {
-  if (!props.ticket.deadline) return false
+// Локальная функция для обработки изменений
+const handleFieldChange = (field, value) => {
+  console.log(`Field ${field} changed to:`, value)
+  emit('fieldChange', field, value)
+}
 
-  try {
-    const deadline = new Date(props.ticket.deadline)
-    const now = new Date()
-    return !isNaN(deadline.getTime()) && deadline < now
-  } catch {
-    return false
+// Локальная копия заявки для редактирования
+const localTicket = ref({ ...props.ticket })
+
+// Следим за изменениями пропса ticket
+watch(() => props.ticket, (newTicket) => {
+  localTicket.value = { ...newTicket }
+}, { immediate: true })
+
+// Роль пользователя
+const userRole = ref('guest')
+
+// Получаем роль из localStorage при создании компонента
+const getUserRole = () => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      return user.role || 'guest'
+    } catch (e) {
+      console.error('Error parsing user for role check:', e)
+      return 'guest'
+    }
   }
-})
+  return 'guest'
+}
+
+userRole.value = getUserRole()
 
 const closeModal = () => {
   emit('close')
 }
 
-const handleEdit = () => {
-  emit('edit', props.ticket)
+const saveChanges = () => {
+  // Сохраняем изменения
+  emit('save', localTicket.value)
 }
 
 const showHistory = () => {
@@ -153,6 +209,8 @@ const showHistory = () => {
   max-width: 1200px;
   max-height: 90vh;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(72, 72, 72) transparent;
   border: 2px solid #757575;
   animation: slideUp 0.3s ease;
 }
@@ -168,11 +226,41 @@ const showHistory = () => {
   }
 }
 
+.save-btn {
+  background: #3dbb52;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.save-btn:hover {
+  background: #37e357;
+  transform: translateY(-1px);
+}
+
 .header-right {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
+/* Обновляем стили для header-right чтобы вместить больше кнопок */
+.modal-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 
 .history-btn {
   background: #d8d8d8;
@@ -199,7 +287,7 @@ const showHistory = () => {
 .modal-header {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 15;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -291,15 +379,15 @@ const showHistory = () => {
 .ticket-sections-one {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 30px;
-  margin-bottom: 30px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .ticket-sections-two {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 30px;
-  margin-bottom: 30px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .comments-section {
@@ -307,7 +395,7 @@ const showHistory = () => {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .comments-section h3 {

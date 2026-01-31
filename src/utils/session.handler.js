@@ -50,12 +50,6 @@ class SessionHandler {
           config.headers['X-CSRF-TOKEN'] = csrfToken
         }
         
-        // Добавляем Authorization токен из localStorage
-        const authToken = localStorage.getItem('auth_token')
-        if (authToken) {
-          config.headers['Authorization'] = `Bearer ${authToken}`
-        }
-        
         config._requestId = requestId
         return config
       },
@@ -98,6 +92,13 @@ class SessionHandler {
       metaTag.setAttribute('content', newToken)
       console.log('✅ CSRF токен обновлен в meta теге')
       return true
+    }
+  }
+
+  // Проверяет и обновляет CSRF токен из ответа сервера
+  checkAndUpdateCsrfFromResponse(response) {
+    if (response.data && response.data.token) {
+      this.updateCsrfTokenInMeta(response.data.token)
     }
   }
 
@@ -159,7 +160,7 @@ class SessionHandler {
     try {
       // Запрашиваем новый CSRF токен с сервера через authApi
       const response = await authApi.refreshCsrf()
-      const newCsrfToken = response.data.csrf_token || response.data.token
+      const newCsrfToken = response.data?.token
       
       if (!newCsrfToken) {
         throw new Error('CSRF токен не получен от сервера')
@@ -183,8 +184,10 @@ class SessionHandler {
     } catch (refreshError) {
       this.isRefreshingCsrf = false
       console.error('❌ Ошибка получения CSRF токена с сервера:', refreshError.message)
+
+      // Проверяем, не является ли это запросом логина
       const isLoginRequest = originalConfig.url && 
-        (originalConfig.url.includes('/login') || originalConfig.url.includes('/auth'))
+        originalConfig.url.includes('/login')
       
       if (!isLoginRequest) {
         await this.handleAuthError()
@@ -198,34 +201,53 @@ class SessionHandler {
   }
 
   // Обработка ошибки авторизации (401)
-  async handleAuthError() {
+  async handleAuthError(error) {
+    const { config } = error
+    
+    // Проверяем, не является ли это запросом выхода
+    if (config?.url?.includes('/logout')) {
+      console.log('🔒 Выход выполнен, очищаем данные...')
+      clearAuthData(true)
+      return Promise.reject(error)
+    }
+    
+    // Проверяем, не является ли это запросом логина с неверными данными
+    if (config?.url?.includes('/login')) {
+      console.log('❌ Неверные учетные данные')
+      return Promise.reject(error)
+    }
+    
+    // Для всех остальных случаев 401 - сессия истекла
+    console.log('🔒 Сессия истекла (401), выполняем выход...')
+    
     // Очищаем данные авторизации
     clearAuthData(true)
-
-    // Эмитируем событие для уведомлений
-    const event = new CustomEvent('auth-notification', {
-      detail: { type: 'sessionExpired' }
-    })
-    window.dispatchEvent(event)
     
     // Редирект на страницу входа
-    router.push({ name: 'login' })
-  }
-
-  // Очищает данные авторизации
-  clearAuthData() {
-    // Очищаем localStorage
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user')
-    localStorage.removeItem('refresh_token')
+    if (router.currentRoute.value.name !== 'login') {
+      router.push({ name: 'login' })
+    }
     
-    console.log('🧹 Данные авторизации очищены')
+    return Promise.reject(error)
   }
 
   // Обработка очереди запросов после обновления CSRF
-  processCsrfQueue() {
+  processCsrfQueue(csrfToken) {
     this.csrfQueue.forEach(promise => {
-      promise.resolve()
+      if (promise.config) {
+        // Обновляем CSRF токен в конфиге
+        promise.config.headers['X-CSRF-TOKEN'] = csrfToken
+        // Выполняем запрос
+        axios(promise.config).then(promise.resolve).catch(promise.reject)
+      }
+    })
+    this.csrfQueue = []
+  }
+
+  // Отклоняет все запросы в очереди
+  rejectCsrfQueue(error) {
+    this.csrfQueue.forEach(promise => {
+      promise.reject(error)
     })
     this.csrfQueue = []
   }

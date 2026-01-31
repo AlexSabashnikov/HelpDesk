@@ -6,139 +6,205 @@
 -->
 
 <template>
-  <div class="main-info-section">
-    <div class="section-header">
+  <div class="ticket-section">
+    <div class="ticket-section-header">
       <h3>Общая информация</h3>
     </div>
 
     <!-- Первый блок: Номер, Приоритет, Статус -->
     <div class="info-block">
-      <div class="info-row">
-        <div class="block-twice">
-          <span class="info-label">Номер заявки</span>
+      <div class="ticket-info-row">
+        <div class="ticket-block-twice">
+          <span class="ticket-info-label">Номер заявки</span>
           <span class="info-value ticket-number">{{ ticket.number }}</span>
         </div>
       </div>
-      <div class="info-row">
-        <div class="block-twice">
-          <span class="info-label">Приоритет</span>
-          <span :class="`priority-badge priority-${ticket.priority}`">
-            {{ getPriorityLabel(ticket.priority) }}
-          </span>
+      <div class="ticket-info-row">
+        <div class="ticket-block-twice">
+          <span class="ticket-info-label">Приоритет</span>
+          <template v-if="mode === 'view'">
+            <span :class="`priority-badge priority-${ticket.priority}`">
+              {{ getPriorityLabel(ticket.priority) }}
+            </span>
+          </template>
+          <UISelect 
+            v-else 
+            :modelValue="ticket.priority" 
+            @update:modelValue="value => $emit('fieldChange', 'priority', value)"
+            :options="priorityOptions"
+            :customClass="`info-value priority-badge priority-${ticket.priority}`"
+          />
         </div>
       </div>
-      <div class="info-row">
-        <div class="block-twice">
-          <span class="info-label">Статус</span>
-          <span :class="`status-badge status-${ticket.status}`">
-            {{ getStatusLabel(ticket.status) }}
-          </span>
+      <div class="ticket-info-row">
+        <div class="ticket-block-twice">
+          <span class="ticket-info-label">Статус</span>
+          <template v-if="mode === 'view'">
+            <span :class="`status-badge status-${ticket.status}`">
+              {{ getStatusLabel(ticket.status) }}
+            </span>
+          </template>
+          <UISelect 
+            v-else 
+            :modelValue="ticket.status" 
+            @update:modelValue="value => $emit('fieldChange', 'status', value)"
+            :options="statusOptions"
+            :customClass="`info-value status-badge status-badge-edit status-${ticket.status}`"
+          />
         </div>
       </div>
     </div>
 
     <!-- Второй блок: Тип, Время создания, Срок выполнения -->
     <div class="info-block">
-      <div class="info-row">
-        <div class="block-twice">
-          <span class="info-label">Тип</span>
-          <span class="info-value ticket-type">{{ getTypeLabel(ticket.type) }}</span>
+      <div class="ticket-info-row">
+        <div class="ticket-block-twice">
+          <span class="ticket-info-label">Тип</span>
+          <template v-if="mode === 'view'">
+            <span class="info-value ticket-type">{{ getTypeLabel(ticket.type) }}</span>
+          </template>
+          <UISelect 
+            v-else 
+            :modelValue="ticket.type" 
+            @update:modelValue="value => $emit('fieldChange', 'type', value)"
+            :options="typeOptions"
+            customClass="info-value ticket-type"
+          />
         </div>
       </div>
-      <div class="info-row">
-        <div class="block-twice">
-          <span class="info-label">Время создания</span>
+      <div class="ticket-info-row">
+        <div class="ticket-block-twice">
+          <span class="ticket-info-label">Время создания</span>
           <span class="info-value time-create">{{ ticket.createdAt }}</span>
         </div>
       </div>
-      <div class="info-row">
-        <div class="block-twice">
-          <span class="info-label">Срок выполнения</span>
-          <span :class="{ 'deadline-overdue': isOverdue }" class="info-value deadline">
-            {{ ticket.deadline }}
-            <span v-if="isOverdue" class="overdue-icon">⚠️</span>
-          </span>
+      <div class="ticket-info-row">
+        <div class="ticket-block-twice">
+          <span class="ticket-info-label">Срок выполнения</span>
+          <template v-if="mode === 'view'">
+            <span :class="{ 'deadline-overdue': isOverdue }" class="info-value deadline">
+              {{ formatDate(ticket.deadline) || 'Не указан' }}
+            </span>
+          </template>
+          <input v-if="mode==='edit'"
+            type="datetime-local" 
+            :value="formatDateTimeLocal(ticket.deadline)"
+            @input="$emit('fieldChange', 'deadline', $event.target.value)"
+            :class="{ 'deadline-overdue': isOverdue }"
+            class="info-value deadline-edit"
+          />
         </div>
       </div>
     </div>
 
-    <!-- Тема (только для чтения) -->
+    <!-- Тема -->
     <div class="readonly-block">
       <div class="block-header">
         <span class="block-label">Тема</span>
-      <span v-if="getTextLength(ticket.subject) > 100" class="char-count char-count-warning">
+        <span v-if="getTextLength(ticket.subject) > 100" class="char-count char-count-warning">
           {{ getTextLength(ticket.subject) }}/100
         </span>
         <span v-else class="char-count">
           {{ getTextLength(ticket.subject) }}/100
         </span>
       </div>
-      <div class="block-content subject-content">
-        {{ truncateText(ticket.subject, 100) || 'Тема не указана' }}
-      </div>
+      <template v-if="mode === 'view'">
+        <div class="block-content subject-content">
+          {{ truncateText(ticket.subject, 100) || 'Тема не указана' }}
+        </div>
+      </template>
+      <textarea 
+        v-else 
+        :value="ticket.subject" 
+        @input="$emit('fieldChange', 'subject', $event.target.value)"
+        class="block-content edit-textarea subject-content"
+        maxlength="100"
+        placeholder="Введите тему заявки..."
+      ></textarea>
     </div>
 
-    <!-- Описание задачи (только для чтения) -->
+    <!-- Описание задачи -->
     <div class="readonly-block">
       <div class="block-header">
         <span class="block-label">Описание</span>
-      <span v-if="getTextLength(ticket.description) > 500" class="char-count char-count-warning">
+        <span v-if="getTextLength(ticket.description) > 500" class="char-count char-count-warning">
           {{ getTextLength(ticket.description) }}/500
         </span>
         <span v-else class="char-count">
           {{ getTextLength(ticket.description) }}/500
         </span>
       </div>
-      <div class="block-content description-content">
-        {{ truncateText(ticket.description, 500) || 'Описание отсутствует' }}
-      </div>
+      <template v-if="mode === 'view'">
+        <div class="block-content description-content">
+          {{ truncateText(ticket.description, 500) || 'Описание отсутствует' }}
+        </div>
+      </template>
+      <textarea 
+        v-else 
+        :value="ticket.description" 
+        @input="$emit('fieldChange', 'description', $event.target.value)"
+        class="block-content edit-textarea description-content"
+        maxlength="500"
+        placeholder="Введите описание задачи..."
+      ></textarea>
     </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, computed } from 'vue'
+import UISelect from '@/components/common/UI/UISelect.vue'
+import { getPriorityLabel, getStatusLabel, truncateText } from '@/utils/ticket.utils'
+import { formatDate, formatDateTimeLocal, isDeadlineOverdue } from '@/utils/date.utils'
 
-// Только объявление, без присваивания переменной
-defineProps({
+const props = defineProps({
   ticket: {
     type: Object,
     required: true,
   },
-  isOverdue: {
-    type: Boolean,
-    default: false,
+  mode: {
+    type: String,
+    default: 'view',
   },
-  editable: {
-    type: Boolean,
-    default: false,
+  userRole: {
+    type: String,
+    default: 'guest',
   },
 })
 
-defineEmits(['edit'])
+const emit = defineEmits(['editSection', 'fieldChange'])
 
-const getPriorityLabel = (priority) => {
-  const labels = {
-    crit: 'Критический',
-    high: 'Высокий',
-    medium: 'Средний',
-    low: 'Низкий',
-  }
-  return labels[priority] || priority
+const isOverdue = computed(() => {
+  return isDeadlineOverdue(props.ticket.deadline)
+})
+
+// Локальная функция для обработки изменений
+const handleFieldChange = (field, value) => {
+  console.log(`Field ${field} changed to:`, value)
+  emit('fieldChange', field, value)
 }
 
-const getStatusLabel = (status) => {
-  const labels = {
-    new: 'Новая',
-    inProgress: 'В работе',
-    completed: 'Выполнена',
-    stopped: 'Работа остановлена',
-    assigned: 'Назначена',
-    waitingPayment: 'Ждет оплаты',
-    rejected: 'Отказ заказчика',
-    onSite: 'Выехал на объект',
-  }
-  return labels[status] || status
+// Опции для выпадающих списков
+const priorityOptions = computed(() => [
+  { value: 'crit', label: 'Критический' },
+  { value: 'high', label: 'Высокий' },
+  { value: 'medium', label: 'Средний' },
+  { value: 'low', label: 'Низкий' }
+])
+
+const statusOptions = computed(() => [
+  { value: 'new', label: 'Новая' },
+  { value: 'assigned', label: 'Назначена' },
+  { value: 'inProgress', label: 'В работе' },
+  { value: 'onSite', label: 'Выехал на объект' },
+  { value: 'completed', label: 'Выполнена' },
+  { value: 'stopped', label: 'Работа остановлена' },
+  { value: 'rejected', label: 'Отказ заказчика' }
+])
+
+// Используем утилиты для форматирования
+const getTextLength = (text) => {
+  return text ? text.length : 0
 }
 
 const getTypeLabel = (type) => {
@@ -151,74 +217,28 @@ const getTypeLabel = (type) => {
   return labels[type] || type || 'Не указан'
 }
 
-const getTextLength = (text) => {
-  return text ? text.length : 0
-}
+const typeOptions = computed(() => [
+  { value: 'onsite', label: 'Выездная заявка' },
+  { value: 'remote', label: 'Удаленная заявка' },
+  { value: 'phone', label: 'Телефонная заявка' },
+  { value: 'web', label: 'WEB-заявка' }
+])
 
-const truncateText = (text, maxLength) => {
-  if (!text) return ''
-  if (text.length <= maxLength) return text
-  return text.substring(0, maxLength) + '...'
-}
 </script>
 
 <style scoped>
-.main-info-section {
-  background: #fcfcfc;
-  border: 1px solid #031432;
-  border-radius: 12px;
-  overflow: hidden; /* Предотвращает выход элементов за границы */
-  box-sizing: border-box;
-}
-
-.section-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 10px;
-  color: white;
-  border-radius: 10px 10px 0 0;
-  background: #031432;
-  box-sizing: border-box;
-}
-
-.section-header h3 {
-  margin: 0;
-  color: #ffffff;
-  font-size: 16px;
-  padding-bottom: 2px;
-}
+@import '@/assets/styles/ticket-card.css';
 
 /* Блоки информации с сеткой */
 .info-block {
   display: grid;
-  grid-template-columns: 250px 150px 150px; 
+  grid-template-columns: 235px 145px 185px; 
   align-items: stretch;
   padding: 0 10px;
   background: #fcfcfc;
   box-sizing: border-box;
   width: 100%;
   gap: 0;
-}
-
-.info-block > .info-row {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.block-twice {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 5px 0 0 0;
 }
 
 /* Устанавливаем фиксированные ширины для конкретных полей */
@@ -229,16 +249,57 @@ const truncateText = (text, maxLength) => {
 }
 
 .ticket-type {
-  min-width: 220px;
-  max-width: 220px;
-  width: 220px;
+  min-width: 200px;
+  max-width: 215px;
+  width: 215px;
 }
 
-.time-create,
+.ticket-type.ui-select {
+  min-width: 200px !important;
+  max-width: 215px !important;
+  width: 215px !important;
+}
+
+
+.time-create{
+  min-width: 115px;
+  max-width: 125px;
+  width: 125px;
+}
 .deadline {
   min-width: 135px;
   max-width: 135px;
   width: 135px;
+}
+
+.deadline-edit {
+  width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 16px;
+  min-width: 160px;
+  max-width: 160px;
+  width: 160px;
+  display: flex;
+  align-items: left;
+  min-height: 28px;
+  height: 28px;
+  padding: 2px 50px 2px 8px; /* Уменьшаем правый отступ */
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  position: relative;
+  background-size: 12px 12px;
+}
+
+/* Убираем стандартный индикатор календаря */
+.deadline-edit::-webkit-calendar-picker-indicator {
+  width: 15px; /* Уменьшаем ширину */
+  position: absolute;
+  padding-left: 130px; /* Пододвигаем ближе к краю */
+  cursor: pointer;
 }
 
 /* Бейджи - устанавливаем такую же ширину как у временных полей */
@@ -247,10 +308,10 @@ const truncateText = (text, maxLength) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 16px;
+  padding: 0 12px;
   border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12px !important;
+  font-weight: 600 !important;
   min-width: 135px;
   max-width: 135px;
   width: 135px;
@@ -261,22 +322,23 @@ const truncateText = (text, maxLength) => {
   min-height: 28px;
 }
 
-.info-row {
-  display: flex;
-  align-items: center;
-  min-height: 40px;
-  box-sizing: border-box;
-  overflow: hidden; /* Предотвращает выход текста за границы */
+.priority-badge{
+  min-width: 115px;
+  max-width: 125px;
+  width: 125px;
 }
 
-.info-label {
-  color: #8c8c8c;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
+
+.status-badge{
+  min-width: 115px;
+  max-width: 135px;
+  width: 135px;
+}
+
+.status-badge-edit{
+  min-width: 125px;
+  max-width: 160px;
+  width: 160px;
 }
 
 .info-value {
@@ -286,7 +348,7 @@ const truncateText = (text, maxLength) => {
   border-radius: 8px;
   font-size: 14px;
   font-weight: 400;
-  padding: 2px 10px;
+  padding: 2px 6px;
   width: 100%;
   box-sizing: border-box;
   white-space: nowrap;
@@ -294,9 +356,101 @@ const truncateText = (text, maxLength) => {
   text-overflow: ellipsis;
   min-height: 16px;
   display: flex;
-  align-items: center;
+  align-items: left;
 }
 
+/* Стили для селектов в режиме редактирования */
+.info-value.ui-select {
+  padding: 2px 6px;
+  min-height: 28px;
+  height: 28px;
+  border-width: 2px !important;
+  border-style: solid !important;
+  font-size: 14px;
+  background-position: calc(100% - 6px) center;
+}
+
+/* Сохраняем цвета приоритетов для селектов */
+.info-value.ui-select.priority-crit {
+  background-color: #ffe3e3 !important;
+  color: #e90000 !important;
+  border-color: #e90000 !important;
+}
+
+.info-value.ui-select.priority-high {
+  background-color: #fff3cd !important;
+  color: #e98c00 !important;
+  border-color: #e98c00 !important;
+}
+
+.info-value.ui-select.priority-medium {
+  background-color: #fffcd6 !important;
+  color: #ccbe00 !important;
+  border-color: #e9da00 !important;
+}
+
+.info-value.ui-select.priority-low {
+  background-color: #d2ffcc !important;
+  color: #16bd00 !important;
+  border-color: #16bd00 !important;
+}
+
+/* Сохраняем цвета статусов для селектов */
+.info-value.ui-select.status-new {
+  background-color: #d0e2ff !important;
+  color: rgb(11, 38, 146) !important;
+  border-color: rgb(11, 38, 146) !important;
+}
+
+.info-value.ui-select.status-inProgress {
+  background-color: #fffbbf !important;
+  color: #938900 !important;
+  border-color: #d3c500 !important;
+}
+
+.info-value.ui-select.status-completed {
+  background-color: #d2ffcc !important;
+  color: #16bd00 !important;
+  border-color: #16bd00 !important;
+}
+
+.info-value.ui-select.status-assigned {
+  background-color: #d0f2ff !important;
+  color: #1caae2 !important;
+  border-color: #1caae2 !important;
+}
+
+.info-value.ui-select.status-stopped {
+  background-color: #f2d0ff !important;
+  color: #8d00c5 !important;
+  border-color: #8d00c5 !important;
+}
+
+.info-value.ui-select.status-rejected {
+  background-color: #ffcbcb !important;
+  color: #bd0000 !important;
+  border-color: #bd0000 !important;
+}
+
+.info-value.ui-select.status-onSite {
+  background-color: #e6fffa !important;
+  color: #008080 !important;
+  border-color: #008080 !important;
+}
+
+/* Стиль для селекта типа заявки */
+.info-value.ui-select.ticket-type {
+  min-width: 220px;
+  max-width: 245px;
+  width: 245px;
+  background-color: #fcfcfc !important;
+  color: #212529 !important;
+  border-color: rgb(152, 152, 152) !important;
+  border-width: 1px !important;
+  font-weight: 400;
+}
+
+/* Цвета приоритетов */
 .priority-crit {
   background: #ffe3e3;
   color: #e90000;
@@ -321,6 +475,7 @@ const truncateText = (text, maxLength) => {
   border: 2px solid #16bd00;
 }
 
+/* Цвета статусов */
 .status-new {
   background: #d0e2ff;
   color: rgb(11, 38, 146);
@@ -365,7 +520,8 @@ const truncateText = (text, maxLength) => {
 
 /* Только для чтения блоки */
 .readonly-block {
-  padding: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
   background: #fcfcfc;
   box-sizing: border-box;
 }
@@ -374,7 +530,7 @@ const truncateText = (text, maxLength) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 5px;
+  padding-top: 5px;
 }
 
 .block-label {
@@ -397,7 +553,7 @@ const truncateText = (text, maxLength) => {
 .block-content {
   color: #212529;
   font-size: 14px;
-  padding: 8px 10px;
+  padding: 4px 10px;
   border-radius: 10px;
   border: 1px solid rgb(152, 152, 152);
   white-space: pre-wrap;
@@ -406,16 +562,24 @@ const truncateText = (text, maxLength) => {
   hyphens: auto;
   box-sizing: border-box;
   width: 100%;
-  overflow: auto;
-  max-height: 200px; /* Ограничение высоты с прокруткой */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(152, 152, 152) transparent;
+  max-height: 200px;
+  min-height: 30px;
+}
+
+.edit-textarea {
+  min-height: 30px !important;
+  resize: vertical; /* Только вертикальное изменение размера */
 }
 
 .subject-content {
-  max-height: 75px; /* Меньшая высота для темы */
+  max-height: 75px;
 }
 
 .description-content {
-  max-height: 200px; /* Большая высота для описания */
+  max-height: 190px;
 }
 
 /* Просроченный дедлайн */
@@ -427,4 +591,25 @@ const truncateText = (text, maxLength) => {
 .overdue-icon {
   margin-left: 5px;
 }
+
+/* Кнопка редактирования секции */
+.edit-section-btn {
+  background: #4dabf7;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.edit-section-btn:hover {
+  background: #339af0;
+  transform: scale(1.1);
+}
 </style>
+

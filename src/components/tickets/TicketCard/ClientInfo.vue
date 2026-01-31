@@ -6,37 +6,54 @@
 
 <!-- src/components/tickets/TicketCard/ClientInfo.vue -->
 <template>
-  <div class="client-info-section">
-    <div class="section-header">
+  <div class="ticket-section">
+    <div class="ticket-section-header">
       <h3>Информация о клиенте</h3>
-      <button v-if="editable" class="edit-section-btn" @click="$emit('edit', 'client')">✏️</button>
     </div>
 
     <div class="info-grid">
-      <div class="info-row">
-        <span class="info-label">Организация:</span>
-        <span class="info-value">{{ ticket.client?.name || 'Не указана' }}</span>
+      <div class="ticket-block-twice">
+        <span class="ticket-info-label">Организация:</span>
+        <div class="value-with-button">
+          <span class="info-value">{{ ticket.client?.name || 'Не указана' }}</span>
+          <button 
+            class="ticket-profile-button" 
+            @click="$emit('goToProfile', 'company', ticket.client.id)"
+            title="Перейти в профиль компании"
+          >
+            →
+          </button>
+        </div>
       </div>
-      <div class="info-row">
-        <span class="info-label">Контактное лицо:</span>
-        <span class="info-value">{{ ticket.contactPerson || 'Не указано' }}</span>
+      <div class="ticket-block-twice">
+        <span class="ticket-info-label">Контактное лицо:</span>
+        <div class="value-with-button">
+          <span class="info-value">{{ ticket.contactPerson || 'Не указано' }}</span>
+          <button 
+            class="ticket-profile-button" 
+            @click="$emit('goToProfile', 'user', ticket.contactPersonId)"
+            title="Перейти в профиль контакта"
+          >
+            →
+          </button>
+        </div>
       </div>
-      <div class="info-row">
-        <span class="info-label">Телефон:</span>
+      <div class="ticket-block-twice">
+        <span class="ticket-info-label">Телефон:</span>
         <span class="info-value">{{ ticket.phone || 'Не указан' }}</span>
       </div>
-      <div class="info-row">
-        <span class="info-label">Email:</span>
+      <div class="ticket-block-twice">
+        <span class="ticket-info-label">Email:</span>
         <span class="info-value">{{ ticket.email || 'Не указан' }}</span>
       </div>
-      <div class="info-row">
-        <span class="info-label">Договор SIA:</span>
+      <div class="ticket-block-twice">
+        <span class="ticket-info-label">Договор SLA:</span>
         <span class="info-value">
           <a href="#" class="contract-link">Договор.pdf</a>
         </span>
       </div>
-      <div class="info-row">
-        <span class="info-label">Способ подачи заявки:</span>
+      <div class="ticket-block-twice">
+        <span class="ticket-info-label">Способ подачи заявки:</span>
         <span class="info-value">{{ ticket.requestMethod || 'WEB-портал' }}</span>
       </div>
     </div>
@@ -57,95 +74,72 @@ defineProps({
   },
 })
 
-defineEmits(['edit'])
+const emit = defineEmits(['editSection', 'fieldChange','goToProfile'])
+
+// Локальная функция для обработки изменений
+const handleFieldChange = (field, value) => {
+  console.log(`Field ${field} changed to:`, value)
+  emit('fieldChange', field, value)
+}
 </script>
 
 <style scoped>
-.client-info-section {
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.section-header h3 {
-  margin: 0;
-  color: #343a40;
-  font-size: 16px;
-  padding-bottom: 8px;
-}
-
-.edit-section-btn {
-  background: #4dabf7;
-  color: white;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.edit-section-btn:hover {
-  background: #339af0;
-  transform: scale(1.1);
-}
-
+@import '@/assets/styles/ticket-card.css';
 .info-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  min-height: 32px;
-}
-
-.info-label {
-  width: 160px;
-  color: #6c757d;
-  font-size: 14px;
-  flex-shrink: 0;
+  padding-left: 10px;
+  padding-right: 10px;
+  background: #fcfcfc;
+  box-sizing: border-box;
+  display: grid;
 }
 
 .info-value {
   flex: 1;
   color: #212529;
+  background-color: #fcfcfc;
+  border: 1px solid rgb(152, 152, 152);
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
+  padding: 2px 10px;
+  min-width: 220px;
+  max-width: 490px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 16px;
+  display: flex;
+  align-items: center;
+}
+
+/* Контейнер для значения с кнопкой */
+.value-with-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 220px;
+  max-width: 490px;
+}
+
+.value-with-button .info-value {
+  flex: 1;
+  min-width: 0; /* Переопределяем минимальную ширину для правильного flex-сжатия */
+  max-width: calc(100% - 170px); /* Учитываем кнопку */
 }
 
 .contract-link {
   color: #3b82f6;
   text-decoration: none;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .contract-link:hover {
   text-decoration: underline;
-}
-
-@media (max-width: 768px) {
-  .info-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
-  }
-
-  .info-label {
-    width: 100%;
-  }
 }
 </style>
