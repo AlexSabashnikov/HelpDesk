@@ -60,7 +60,7 @@ onMounted(async () => {
     if (!csrfMeta) {
       console.warn('⚠️ CSRF meta тег не найден при загрузке страницы')
     } else {
-      console.log('✅ CSRF токен получен при загрузке страницы')
+      console.log('✅ CSRF токен присутствует в meta теге')
     }
   } catch (error) {
     console.log('ℹ️ Error checking CSRF token:', error)
@@ -80,7 +80,8 @@ async function handleLogin() {
     // Отправляем запрос
     await authStore.login(credentials)
   } catch (err) {
-    errorMessage.value = err?.response?.data?.message || 'Ошибка авторизации'
+    console.log(err)
+    errorMessage.value = err.message
   } finally {
     loading.value = false
   }

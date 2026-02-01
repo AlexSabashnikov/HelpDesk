@@ -6,6 +6,7 @@
 
 import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia } from 'pinia'
+import { getUserRole } from '@/utils/auth.utils'
 
 // Импортируем маршруты из разных файлов
 import authRoutes from './auth.routes.js'
@@ -56,20 +57,6 @@ const router = createRouter({
 
 const pinia = createPinia()
 
-const getUserRole = () => {
-  let userRole = null
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      userRole = user.role
-    } catch (e) {
-      console.error('Error parsing user for role check:', e)
-    }
-  }
-  return userRole
-}
-
 // Глобальный навигационный guard
 router.beforeEach(async (to, from, next) => {
   console.log(`🔄 Navigation: ${from.path} -> ${to.path}`)
@@ -88,14 +75,20 @@ router.beforeEach(async (to, from, next) => {
   
   // Определяем публичные маршруты (не требующие авторизации)
   const publicRoutes = ['login', 'forgot-password', 'unauthorized']
+  // Проверяем состояние авторизации в localStorage напрямую
+  const savedUser = localStorage.getItem('user')
   
+  // Синхронизируем состояние store с localStorage
+  if (!savedUser && authStore.isAuthenticated) {
+    console.log('⚠️ LocalStorage пуст, но store считает пользователя авторизованным - синхронизируем')
+    await authStore.clearAuthData()
+  }
+
   // Если маршрут публичный
   if (publicRoutes.includes(to.name)) {
     // Если пользователь уже авторизован и пытается зайти на логин
     if (to.name === 'login' && authStore.isAuthenticated) {
       console.log('✅ User already authenticated, redirecting based on role...')
-      // Небольшая задержка для гарантии обновления реактивности
-      await new Promise(resolve => setTimeout(resolve, 50))
       // Редирект по роли
       const userRole = getUserRole()
       console.log("Роль перед редиректом ", userRole)

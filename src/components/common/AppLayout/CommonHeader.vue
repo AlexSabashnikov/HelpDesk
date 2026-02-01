@@ -28,17 +28,9 @@
 </template>
 
 <script setup>
-let userRole = null;
-const userStr = localStorage.getItem('user')
-      
-if (userStr) {
-  try {
-    const user = JSON.parse(userStr)
-    userRole = user.role
-  } catch (e) {
-    console.error('Error parsing user for role check:', e)
-  }
-}
+import { getUserRole } from '@/utils/auth.utils'
+
+const userRole = getUserRole()
 </script>
 
 <style scoped>

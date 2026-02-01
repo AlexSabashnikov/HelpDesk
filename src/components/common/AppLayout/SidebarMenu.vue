@@ -238,8 +238,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { getUserRole } from '@/utils/auth.utils'
 
-let userRole = null;
+const userRole = getUserRole()
 
 const isOpen = ref({})
 const isCollapsed = ref(true)
@@ -248,15 +249,6 @@ const route = useRoute()
 // Инициализируем состояние открытых секций в зависимости от роли
 const initializeOpenSections = () => {
   // Получаем роль из localStorage напрямую
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      userRole = user.role
-    } catch (e) {
-      console.error('Error parsing user for role check:', e)
-    }
-  }
   if (userRole === 'admin') {
     isOpen.value = {
       tickets: false,

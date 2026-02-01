@@ -4,18 +4,11 @@
  * Все обработки сессий вынесены в session.handler.js
  */
 
-import axios from 'axios'
+// axios.config.js
+import { globalApiClient } from '@/utils/session.handler'
 
-// Базовый axios клиент 
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  withCredentials: true,
-  timeout: 30000,
-})
+// Экспортируем глобальный клиент
+const apiClient = globalApiClient
 
 export default apiClient
-export { axios as axiosInstance }
+export { apiClient as axiosInstance }

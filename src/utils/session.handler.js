@@ -8,7 +8,24 @@
 import axios from 'axios'
 import router from '@/router'
 import { clearAuthData } from '@/utils/auth.utils'
-import { authApi } from '@/api/index.api'
+
+// Создаем централизованный экземпляр axios
+const createAxiosInstance = () => {
+  const instance = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || 'http://192.168.20.96:3000',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    withCredentials: true,
+    timeout: 30000,
+  })
+  
+  return instance
+}
+
+// Глобальный экземпляр для всего приложения
+export const globalApiClient = createAxiosInstance()
 
 class SessionHandler {
   constructor() {
@@ -29,16 +46,18 @@ class SessionHandler {
     console.log('🔧 Initializing session handler...')
     
     // Перехватчики для всех axios запросов
-    this.setupInterceptors()
+    this.setupInterceptors(axios)
+
+    this.setupInterceptors(globalApiClient)
     
     this.isInitialized = true
     console.log('✅ Session handler initialized')
   }
 
   // Настройка перехватчиков для axios
-  setupInterceptors() {
+  setupInterceptors(axiosInstance) {
     // Перехватчик запросов
-    axios.interceptors.request.use(
+    axiosInstance.interceptors.request.use(
       (config) => {
         // Отслеживаем активные запросы
         const requestId = this.generateRequestId(config)
@@ -59,18 +78,24 @@ class SessionHandler {
     )
 
     // Перехватчик ответов
-    axios.interceptors.response.use(
+    axiosInstance.interceptors.response.use(
       (response) => {
         // Удаляем завершенный запрос из отслеживания
         if (response.config._requestId) {
           this.activeRequests.delete(response.config._requestId)
         }
+        this.updateCsrfTokenFromResponse(response)
         return response
       },
       async (error) => {
         // Удаляем запрос из отслеживания
         if (error.config?._requestId) {
           this.activeRequests.delete(error.config._requestId)
+        }
+
+        // Проверяем CSRF токен в ответе с ошибкой
+        if (error.response?.data?.token) {
+          this.updateCsrfTokenInMeta(error.response.data.token)
         }
 
         await this.handleResponseError(error)
@@ -95,6 +120,15 @@ class SessionHandler {
     }
   }
 
+  updateCsrfTokenFromResponse(response) {
+  if (response?.data?.token) {
+    this.updateCsrfTokenInMeta(response.data.token)
+    console.log('✅ CSRF токен обновлен из ответа сервера')
+    return true
+  }
+  return false
+}
+
   // Проверяет и обновляет CSRF токен из ответа сервера
   checkAndUpdateCsrfFromResponse(response) {
     if (response.data && response.data.token) {
@@ -113,12 +147,12 @@ class SessionHandler {
    * Обрабатывает ошибки ответов
    */
   async handleResponseError(error) {
-    const { config, response } = error
+    const { response } = error
     
     // Ошибка 419 - CSRF токен истек
     if (response?.status === 419) {
       console.log('🔄 CSRF token expired (419), refreshing...')
-      return await this.handleCsrfError(config)
+      return await this.handleCsrfError(error)
     }
     
     // Ошибка 401 - не авторизован (токен истек)
@@ -159,7 +193,7 @@ class SessionHandler {
     
     try {
       // Запрашиваем новый CSRF токен с сервера через authApi
-      const response = await authApi.refreshCsrf()
+      const response = await globalApiClient.get('/csrf-token')
       const newCsrfToken = response.data?.token
       
       if (!newCsrfToken) {
@@ -179,8 +213,9 @@ class SessionHandler {
       // Выполняем запросы из очереди с новым токеном
       this.processCsrfQueue(newCsrfToken)
       
+      const axiosInstance = this.getAxiosInstanceForConfig(originalConfig) // Нужно добавить этот метод
       // Повторяем оригинальный запрос с новым токеном
-      return axios(originalConfig)
+      return axiosInstance(originalConfig)
     } catch (refreshError) {
       this.isRefreshingCsrf = false
       console.error('❌ Ошибка получения CSRF токена с сервера:', refreshError.message)
@@ -206,10 +241,14 @@ class SessionHandler {
     
     // Проверяем, не является ли это запросом выхода
     if (config?.url?.includes('/logout')) {
-      console.log('🔒 Выход выполнен, очищаем данные...')
-      clearAuthData(true)
-      return Promise.reject(error)
-    }
+    console.log('🔒 Выход выполнен, очищаем данные...')
+    
+    // При logout сервер возвращает новый CSRF токен
+    this.updateCsrfTokenFromResponse(error.response)
+    
+    clearAuthData(true)
+    return Promise.reject(error)
+  }
     
     // Проверяем, не является ли это запросом логина с неверными данными
     if (config?.url?.includes('/login')) {
@@ -238,7 +277,7 @@ class SessionHandler {
         // Обновляем CSRF токен в конфиге
         promise.config.headers['X-CSRF-TOKEN'] = csrfToken
         // Выполняем запрос
-        axios(promise.config).then(promise.resolve).catch(promise.reject)
+        globalApiClient(promise.config).then(promise.resolve).catch(promise.reject)
       }
     })
     this.csrfQueue = []

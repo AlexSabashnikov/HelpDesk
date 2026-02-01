@@ -8,11 +8,11 @@ import router from './router'
 const app = createApp(App)
 const pinia = createPinia()
 
-// Сначала устанавливаем pinia
-app.use(pinia)
-
 // Инициализируем session handler
 sessionHandler.init()
+
+// Сначала устанавливаем pinia
+app.use(pinia)
 
 app.use(router)
 

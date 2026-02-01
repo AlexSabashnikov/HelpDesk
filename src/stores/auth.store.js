@@ -60,14 +60,14 @@ export const useAuthStore = defineStore('auth', () => {
           //const mockToken = `mock_jwt_${Date.now()}_${Math.random().toString(36).substr(2)}`
           
           const role = roleConversion(foundUser.role.name)
-          foundUser.role = role 
+          foundUser.role.name = role 
           // Сохраняем данные
           user.value = foundUser
           localStorage.setItem('user', JSON.stringify(foundUser))
           
           console.log(`✅ Mock login successful as ${role}`)
           // Редирект по роли
-          redirectByRole(foundUser.role)
+          redirectByRole(foundUser.role.name)
           // Вызываем уведомление
           emitAuthEvent('loginSuccess')
 
@@ -104,27 +104,32 @@ export const useAuthStore = defineStore('auth', () => {
         console.log('🔧 Using mock login mode')
         return await mockLogin(credentials)
       }
-      const response = await apiClient.post('/login', credentials)
-      
-      const { user: userData, token: csrfToken } = response.data
 
-      if (!userData) {
+      console.log('Отправляю запрос на /login:', credentials)
+
+      const response = await apiClient.post('/login', credentials)
+
+      console.log('Ответ от сервера:', response.data)
+      console.log('Cтруктура ответа:', JSON.stringify(response.data, null, 2))
+      
+      // Проверяем, есть ли ошибка валидации
+      if (response.data?.validator_fails) {
+        throw new Error(response.data.validator_fails)
+      }
+
+      const { user: userData } = response.data
+
+      if (!userData?.role.name) {
         throw new Error('Неверный ответ от сервера')
       }
-      
+      const role = roleConversion(userData.role.name)
+      userData.role.name = role
+
       // Сохраняем данные пользователя
       user.value = userData
-      
+
       // Сохраняем в localStorage только данные пользователя
       localStorage.setItem('user', JSON.stringify(userData))
-
-      // Обновляем CSRF токен в meta теге
-      if (csrfToken) {
-        const metaTag = document.querySelector('meta[name="csrf-token"]')
-        if (metaTag) {
-          metaTag.setAttribute('content', csrfToken)
-        }
-      }
       
       console.log('✅ Успешный вход, роль:', userData.role?.name || 'не указана')
       // Редирект по роли
@@ -135,16 +140,22 @@ export const useAuthStore = defineStore('auth', () => {
       return response.data
     } catch (error) {
       console.error('Ошибка входа:', error)
-      
+    
+      // Если это уже наша кастомная ошибка (с validator_fails)
+      if (error.message && error.message.includes('Учетная запись')) {
+        throw error // Просто пробрасываем дальше
+      }
+    
       // Ошибка 422 - неверные учетные данные
       if (error.response?.status === 422) {
         const errorMessage = error.response?.data?.validator_fails || 
-                           error.response?.data?.message ||
-                           'Учетная запись не найдена'
+                         error.response?.data?.message ||
+                         'Учетная запись не найдена'
         throw new Error(errorMessage)
       }
-      
-      throw error
+    
+      // Другие ошибки
+      throw new Error('Ошибка подключения к серверу')
     }
   }
 
@@ -168,6 +179,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const forceLogout = async () => {
+    try {
+      await apiClient.post('/logout')
+    } catch(error){
+      console.log(error, ' ℹ️ Выход выполнен')
+    } finally {
+      // Очищаем локальные данные (без редиректа)
+      user.value = null
+      localStorage.removeItem('user')
+      console.log('🧹 Локальные данные очищены (без редиректа)')
+    }
+  }
   // Выход пользователя
   const logout = async () => {
     try {
@@ -176,33 +199,17 @@ export const useAuthStore = defineStore('auth', () => {
       // Даже если ошибка, все равно очищаем данные
       console.log(error, ' ℹ️ Выход выполнен')
     } finally {
-      clearAuthData()
+      //clearAuthData()
       router.push({ name: 'login' })
     }
   }
 
-  /*const fetchCsrfToken = async () => {
-    try {
-      // Читаем токен из meta
-      const csrfMeta = document.querySelector('meta[name="csrf-token"]')
-      if (!csrfMeta) {
-        throw new Error('CSRF meta tag not found')
-      }
-    
-      csrfToken.value = csrfMeta.getAttribute('content')
-      console.log('✅ CSRF токен загружен из meta:', csrfToken.value)
-    
-      return csrfToken.value
-    } catch (error) {
-      console.error('Ошибка получения CSRF токена:', error)
-      throw error
-    }
-  }*/
-
-  const clearAuthData = () => {
+  const clearAuthData = async () => {
     // Вызываем уведомление
-    clearAuthDataUtil(true)
+    console.log('authStore clearData')
+    await logout()
     user.value = null
+    clearAuthDataUtil(true)
   }
 
   const initialize = () => {
@@ -224,15 +231,16 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isAuthenticated,
     userRole,
-    useMockMode, // УДАЛИТЬ
-    mockUsers, // УДАЛИТЬ
+    //useMockMode, // УДАЛИТЬ
+    //mockUsers, // УДАЛИТЬ
     
     // Действия
     login,
     logout,
+    forceLogout,
     clearAuthData,
     initialize,
     redirectByRole,
-    mockLogin, // УДАЛИТЬ
+    //mockLogin, // УДАЛИТЬ
   }
 })

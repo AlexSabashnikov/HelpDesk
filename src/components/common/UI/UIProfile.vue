@@ -21,20 +21,19 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { getUserRole } from '@/utils/auth.utils'
 
 const showDropdown = ref(false)
 
 // Заглушка данных пользователя
 const userName = 'Левченко С.П.'
 let userRoleStr = null
-let userRole = null;
+const userRole = getUserRole()
 
 const userStr = localStorage.getItem('user')
       
 if (userStr) {
   try {
-    const user = JSON.parse(userStr)
-    userRole = user.role
     switch (userRole) {
       case 'admin':
         userRoleStr = "Администратор"

@@ -103,6 +103,7 @@
 import { computed, defineProps, ref } from 'vue'
 import UITable from '@/components/common/UI/UITable.vue'
 import TicketCard from '@/views/admin/tickets/TicketCard.vue'
+import { getUserRole } from '@/utils/auth.utils'
 import {
   truncateText,
   getPriorityLabel,
@@ -134,6 +135,7 @@ const emit = defineEmits(['rowClick', 'pageChange', 'sortChange', 'edit', 'delet
 // Локальное состояние для модального окна
 const showModal = ref(false)
 const selectedTicket = ref(null)
+const userRole = getUserRole()
 
 // Преобразуем данные для таблицы с использованием утилит
 const formattedTickets = computed(() => {
@@ -159,18 +161,6 @@ const currentMode = ref('view') // 'view' или 'edit'
 
 // Обработчик редактирования из кнопки в таблице
 const handleEdit = (row) => {
-  // Проверяем роль пользователя
-  let userRole = 'guest'
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      userRole = user.role
-    } catch (e) {
-      console.error('Error parsing user for role check:', e)
-    }
-  }
-
   // Проверяем, имеет ли пользователь права администратора
   if (userRole === 'admin') {
     selectedTicket.value = {
