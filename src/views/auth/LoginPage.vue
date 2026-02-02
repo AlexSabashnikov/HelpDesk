@@ -60,7 +60,7 @@ onMounted(async () => {
     if (!csrfMeta) {
       console.warn('⚠️ CSRF meta тег не найден при загрузке страницы')
     } else {
-      console.log('✅ CSRF токен присутствует в meta теге')
+      console.log('✅ CSRF токен присутствует в meta теге ', csrfMeta)
     }
   } catch (error) {
     console.log('ℹ️ Error checking CSRF token:', error)

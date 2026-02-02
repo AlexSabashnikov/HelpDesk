@@ -52,6 +52,16 @@ export default defineConfig([
           ignoreDestructuring: false,
           ignoreImports: false,
           ignoreGlobals: false,
+          allow: [
+          '^[a-z]+(_[a-z]+)+$', // Разрешаем snake_case
+          'created_at',
+          'updated_at',
+          'email_verified_at',
+          'middle_name',
+          'first_name',
+          'last_name',
+          'laravel_through_key'
+        ]
         },
       ],
 

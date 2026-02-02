@@ -10,5 +10,7 @@ import { globalApiClient } from '@/utils/session.handler'
 // Экспортируем глобальный клиент
 const apiClient = globalApiClient
 
+export const getAxiosInstance = () => globalApiClient
+
 export default apiClient
 export { apiClient as axiosInstance }

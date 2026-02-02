@@ -5,10 +5,7 @@
  */
 
 const engineerRoutes = [
-  {
-    path: '/engineer',
-    redirect: '/engineer/tickets',
-  },
+  
   {
     path: '/engineer/tickets',
     name: 'engineer-tickets',
@@ -38,6 +35,10 @@ const engineerRoutes = [
       requiresAuth: true,
       role: 'engineer',
     },
+  },
+  {
+    path: '/engineer',
+    redirect: '/engineer/tickets',
   },
 ]
 

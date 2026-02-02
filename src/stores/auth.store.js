@@ -14,9 +14,7 @@ import { emitAuthEvent, clearAuthData as clearAuthDataUtil } from '@/utils/auth.
 export const useAuthStore = defineStore('auth', () => {
   // Состояние
   const user = ref(null)
-  //const csrfToken = ref(localStorage.getItem('csrf_token'))
   const isAuthenticated = computed(() => !!user.value)
-  //const userRole = computed(() => roleConversion(user.value.role.name) || null) 
   const useMockMode = ref(import.meta.env.DEV) // МОК ДАННЫЕ Только в разработке
   const userRole = computed(() => roleConversion(user.value.role.name) || null)
 
@@ -25,10 +23,16 @@ export const useAuthStore = defineStore('auth', () => {
   // Mock данные для входа
   const mockUsers = {
     'admin@test.com': { 
+      created_at: "2026-01-31T10:27:16.000000Z",
+      email_verified_at: null,
+      first_name: "Сергей",
       id: 1, 
-      name: 'Сабашников А.Е.', 
+      last_name: 'Левченко',
+      login: "admin",
+      middle_name: "Павлович",
       email: 'admin@test.com',
-      role: { id: 1, name: 'Администратор'},
+      role: { id: 1, name: 'Администратор', description: null},
+      updated_at: "2026-01-31T10:27:16.000000Z",
     },
     'disp@test.com': { 
       id: 2, 
@@ -128,7 +132,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Сохраняем данные пользователя
       user.value = userData
 
-      // Сохраняем в localStorage только данные пользователя
+      // Сохраняем в localStorage данные пользователя
       localStorage.setItem('user', JSON.stringify(userData))
       
       console.log('✅ Успешный вход, роль:', userData.role?.name || 'не указана')
@@ -160,7 +164,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const redirectByRole = (roleName) => {
-    console.log("РОЛЬ ПЕРЕД РЕДИРЕКТОМ2 ", roleName)
     switch (roleName) {
       case 'admin':
         router.push({ name: 'admin-tickets' })
@@ -179,18 +182,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const forceLogout = async () => {
-    try {
-      await apiClient.post('/logout')
-    } catch(error){
-      console.log(error, ' ℹ️ Выход выполнен')
-    } finally {
-      // Очищаем локальные данные (без редиректа)
-      user.value = null
-      localStorage.removeItem('user')
-      console.log('🧹 Локальные данные очищены (без редиректа)')
-    }
-  }
   // Выход пользователя
   const logout = async () => {
     try {
@@ -223,7 +214,7 @@ export const useAuthStore = defineStore('auth', () => {
         console.error('Ошибка инициализации авторизации:', error)
         clearAuthData()
       }
-    }
+    } 
   }
 
   return {
@@ -237,7 +228,6 @@ export const useAuthStore = defineStore('auth', () => {
     // Действия
     login,
     logout,
-    forceLogout,
     clearAuthData,
     initialize,
     redirectByRole,

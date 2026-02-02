@@ -6,10 +6,7 @@
  */
 
 const clientRoutes = [
-  {
-    path: '/client',
-    redirect: '/client/tickets',
-  },
+  
   {
     path: '/client/tickets',
     name: 'client-tickets',
@@ -59,6 +56,10 @@ const clientRoutes = [
       requiresAuth: true,
       role: 'client',
     },
+  },
+  {
+    path: '/client',
+    redirect: '/client/tickets',
   },
 ]
 

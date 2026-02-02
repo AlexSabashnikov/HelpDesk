@@ -127,6 +127,7 @@ const handleResetFilters = () => {
 }
 
 const setQuickFilter = (type) => {
+  
   const quickFiltersMap = {
     new: { status: 'new' },
     overdue: { overdue: true },

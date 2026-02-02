@@ -1,8 +1,5 @@
 const dispatcherRoutes = [
-  {
-    path: '/dispatcher',
-    redirect: '/admin/tickets',
-  },
+  
   {
     path: '/dispatcher/tickets',
     name: 'dispatcher-tickets',
@@ -72,6 +69,10 @@ const dispatcherRoutes = [
       requiresAuth: true,
       role: 'dispatcher',
     },
+  },
+  {
+    path: '/dispatcher',
+    redirect: '/admin/tickets',
   },
 ]
 

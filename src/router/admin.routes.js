@@ -7,10 +7,6 @@
 
 const adminRoutes = [
   {
-    path: '/admin',
-    redirect: '/admin/tickets',
-  },
-  {
     path: '/admin/tickets',
     name: 'admin-tickets',
     component: () => import('@/views/admin/tickets/AllTickets.vue'),
@@ -79,6 +75,10 @@ const adminRoutes = [
       requiresAuth: true,
       role: 'admin',
     },
+  },
+  {
+    path: '/admin',
+    redirect: '/admin/tickets',
   },
 ]
 

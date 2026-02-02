@@ -55,6 +55,7 @@ const router = createRouter({
   }
 })
 
+
 const pinia = createPinia()
 
 // Глобальный навигационный guard
@@ -114,46 +115,49 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     console.log('🔐 Маршрут требует авторизации, проверка...')
     
-    if (!authStore.isAuthenticated) {
-      console.log('❌ Пользователь не авторизован, редирект на логин')
-      authStore.clearAuthData()
+    // Проверяем оба источника: localStorage и store
+    const hasLocalStorageUser = !!savedUser
+    const hasStoreUser = authStore.isAuthenticated
+    
+    console.log('hasLocalStorageUser:', hasLocalStorageUser, 'hasStoreUser:', hasStoreUser)
+    
+    // Если нет пользователя в localStorage - сразу на логин
+    if (!hasLocalStorageUser) {
+      console.log('❌ Нет данных в localStorage, редирект на логин')
+      if (hasStoreUser) {
+        // Если store считает что пользователь есть, а localStorage пуст - очищаем
+        authStore.user = null
+      }
       return next({ name: 'login' })
     }
-      // Проверяем, что данные в AuthStore совпадают с localStorage
-    const savedUser = localStorage.getItem('user')
-  
-    if (!savedUser) {
-      console.log('⚠️ Данные авторизации исчезли из LocalStorage, очищаем сессию')
-      authStore.clearAuthData()
-      return next({ name: 'login' })
-    }
-  
-    // Проверяем, что пользователь в store совпадает с localStorage
-    try {
-      const parsedUser = JSON.parse(savedUser)
-      if (!authStore.user || authStore.user.id !== parsedUser.id) {
-        console.log('⚠️ Данные пользователя из LocalStorage не совпадают с AuthStore, очищаем сессию')
-        authStore.clearAuthData()
+    
+    // Если есть пользователь в localStorage, но store не инициализирован
+    if (hasLocalStorageUser && !hasStoreUser) {
+      console.log('⚠️ Восстанавливаем данные из localStorage в store')
+      try {
+        const userData = JSON.parse(savedUser)
+        authStore.user = userData
+      } catch (error) {
+        console.error('❌ Error parsing user data:', error)
+        await authStore.clearAuthData()
         return next({ name: 'login' })
       }
-    } catch (error) {
-      console.error('❌ Error parsing user data:', error)
-      authStore.clearAuthData()
-      return next({ name: 'login' })
     }
-
-    console.log('✅ Аутентифицирован, проверка роли...')
     
+    // Теперь оба источника должны быть синхронизированы
+    console.log('✅ Аутентифицирован, проверка роли...')
     
     const requiredRole = to.meta.role
     let userRole = getUserRole()
+    
     if (requiredRole) {
-    console.log(userRole, "  ", requiredRole)
+      console.log(userRole, "  ", requiredRole)
       if (userRole !== requiredRole) {
         console.log(`🚫 Пользователь не имеет прав, редирект на unauthorized`)
         return next({ name: 'unauthorized' })
       }
     }
+
     console.log('✅ Проверка роли прошла успешно')
   }
   next()

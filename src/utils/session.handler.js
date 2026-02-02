@@ -24,8 +24,37 @@ const createAxiosInstance = () => {
   return instance
 }
 
+// ОСОБЫЙ клиент для запроса CSRF токена
+const createCsrfRefreshClient = () => {
+  const instance = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || 'http://192.168.20.96:3000',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    withCredentials: true,
+    timeout: 30000,
+  })
+  
+  // НЕ добавляем стандартные интерцепторы!
+  // Только минимальный интерцептор для отслеживания
+  instance.interceptors.request.use(
+    (config) => {
+      // НИКОГДА не добавляем CSRF токен для этого клиента
+      return config
+    },
+    (error) => {
+      return Promise.reject(error)
+    }
+  )
+  
+  return instance
+}
+
 // Глобальный экземпляр для всего приложения
 export const globalApiClient = createAxiosInstance()
+
+const csrfRefreshClient = createCsrfRefreshClient()
 
 class SessionHandler {
   constructor() {
@@ -49,7 +78,7 @@ class SessionHandler {
     this.setupInterceptors(axios)
 
     this.setupInterceptors(globalApiClient)
-    
+
     this.isInitialized = true
     console.log('✅ Session handler initialized')
   }
@@ -190,10 +219,14 @@ class SessionHandler {
 
     this.isRefreshingCsrf = true
     console.log('🔄 CSRF токен истек, запрашиваем новый с сервера...')
+    console.log('Оригинальный URL запроса:', originalConfig.url)
+    console.log('Текущий CSRF токен в meta:', this.getCsrfTokenFromMeta())
     
     try {
       // Запрашиваем новый CSRF токен с сервера через authApi
-      const response = await globalApiClient.get('/csrf-token')
+      console.log('📤 Отправляем запрос на /get_token БЕЗ CSRF заголовка...')
+      const response = await csrfRefreshClient.get('/get_token')
+      console.log("response.data: ", response.data)
       const newCsrfToken = response.data?.token
       
       if (!newCsrfToken) {
@@ -213,7 +246,7 @@ class SessionHandler {
       // Выполняем запросы из очереди с новым токеном
       this.processCsrfQueue(newCsrfToken)
       
-      const axiosInstance = this.getAxiosInstanceForConfig(originalConfig) // Нужно добавить этот метод
+      const axiosInstance = this.getAxiosInstanceForConfig(originalConfig)
       // Повторяем оригинальный запрос с новым токеном
       return axiosInstance(originalConfig)
     } catch (refreshError) {
@@ -235,32 +268,25 @@ class SessionHandler {
     }
   }
 
-  // Обработка ошибки авторизации (401)
-  async handleAuthError(error) {
-    const { config } = error
-    
-    // Проверяем, не является ли это запросом выхода
-    if (config?.url?.includes('/logout')) {
-    console.log('🔒 Выход выполнен, очищаем данные...')
-    
-    // При logout сервер возвращает новый CSRF токен
-    this.updateCsrfTokenFromResponse(error.response)
-    
-    clearAuthData(true)
-    return Promise.reject(error)
-  }
-    
-    // Проверяем, не является ли это запросом логина с неверными данными
-    if (config?.url?.includes('/login')) {
-      console.log('❌ Неверные учетные данные')
-      return Promise.reject(error)
+  // Определяет какой экземпляр axios использовать для конфига
+  getAxiosInstanceForConfig(config) {
+    // Если запрос был через globalApiClient, используем его
+    // Проверяем по baseURL или другим признакам
+    if (config.baseURL === globalApiClient.defaults.baseURL) {
+      return globalApiClient
     }
     
-    // Для всех остальных случаев 401 - сессия истекла
+    // В противном случае используем глобальный axios
+    return axios
+  }
+
+  // Обработка ошибки авторизации (401)
+  async handleAuthError(error) {
+    // Для всех случаев 401 - сессия истекла
     console.log('🔒 Сессия истекла (401), выполняем выход...')
     
-    // Очищаем данные авторизации
-    clearAuthData(true)
+    // Очищаем данные авторизации и /logout
+    clearAuthData()
     
     // Редирект на страницу входа
     if (router.currentRoute.value.name !== 'login') {
