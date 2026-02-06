@@ -97,3 +97,29 @@ export const isDeadlineOverdue = (dateString) => {
     return false
   }
 }
+
+/**
+ * Проверяет валидность даты
+ */
+export const isInvalidDate = (dateString) => {
+  if (!dateString) return false
+  
+  try {
+    let date;
+    
+    const russianFormat = /(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})/;
+    const match = dateString.match(russianFormat);
+    
+    if (match) {
+      const [, day, month, year, hours, minutes] = match;
+      date = new Date(`${year}-${month}-${day}T${hours}:${minutes}`);
+    } else {
+      date = new Date(dateString);
+    }
+    
+    const now = new Date()
+    return !isNaN(date.getTime()) && date < now
+  } catch {
+    return false
+  }
+}

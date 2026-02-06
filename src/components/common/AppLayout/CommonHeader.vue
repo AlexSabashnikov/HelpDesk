@@ -42,10 +42,10 @@ const userRole = getUserRole()
   width: 85%;
   padding: 0 24px;
   margin-left: 15%;
-  height: 60px;
-  max-height: 60px;
+  height: 55px;
+  z-index: 1199;
+  max-height: 55px;
   background: rgb(255, 255, 255);
-  border-bottom: 1px solid #e0e0e0;
 }
 
 .interface-and-crumbs {
@@ -59,8 +59,8 @@ const userRole = getUserRole()
 }
 
 .name-of-interface {
-  font-size: 24px;
-  font-weight: 550;
+  font-size: 22px;
+  font-weight: 500;
   color: #ffffff;
 }
 

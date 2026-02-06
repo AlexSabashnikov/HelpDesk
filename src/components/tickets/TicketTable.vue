@@ -53,14 +53,14 @@
       </template>
 
       <template #cell-deadline="{ value, row }">
-  <span
-    :class="['deadline-cell', row.deadlineClass]"
-  >
-    {{ value }}
-    <span v-if="row.deadlineClass === 'deadline-overdue'"></span>
-    <span v-if="row.deadlineClass === 'deadline-approaching'"></span>
-  </span>
-</template>
+        <span
+        :class="['deadline-cell', row.deadlineClass]"
+        >
+          {{ value }}
+          <span v-if="row.deadlineClass === 'deadline-overdue'"></span>
+          <span v-if="row.deadlineClass === 'deadline-approaching'"></span>
+        </span>
+      </template>
 
       <!-- Кастомный слот для колонки "Редактирование" -->
       <template #cell-edit="{ row }">
@@ -175,6 +175,7 @@ const handleEdit = (row) => {
       workCost: row.workCost,
       requestMethod: row.requestMethod,
       distance: row.distance,
+      materials: row.materials,
     }
     currentMode.value = 'edit' // Устанавливаем режим редактирования
     showModal.value = true
@@ -197,6 +198,7 @@ const handleRowClick = (row) => {
     workCost: row.workCost,
     requestMethod: row.requestMethod,
     distance: row.distance,
+    materials: row.materials,
   }
   currentMode.value = 'view' // Устанавливаем режим просмотра
   showModal.value = true

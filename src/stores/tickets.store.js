@@ -6,6 +6,8 @@
 
 import { defineStore } from 'pinia'
 import { ticketsApi } from '@/api/tickets.api'
+//import apiClient from '@/api/axios.config'
+
 
 export const useTicketsStore = defineStore('tickets', {
   state: () => ({

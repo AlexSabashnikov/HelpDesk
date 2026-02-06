@@ -256,7 +256,7 @@ onUnmounted(() => {
   height: 100vh;
   background: #f8f8f8;
   border-left: 2px solid rgb(165, 165, 165);
-  z-index: 1100;
+  z-index: 1201;
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;
@@ -392,7 +392,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1099;
+  z-index: 1200;
   animation: fadeIn 0.2s ease;
   background: #00000027;
 }

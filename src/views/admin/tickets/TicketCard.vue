@@ -31,7 +31,7 @@
         <div class="ticket-sections-one">
           <!-- Блок основной информации -->
           <MainInfo 
-            :ticket="ticket" 
+            :ticket="localTicket" 
             :mode="mode"
             :user-role="userRole"
             @fieldChange="handleFieldChange" 
@@ -39,23 +39,24 @@
 
           <!-- Блок исполнения -->
           <ExecutionBlock 
-            :ticket="ticket"
+            :ticket="localTicket"
             :mode="mode"
             :user-role="userRole"
             @fieldChange="handleFieldChange"
+            @materialChange="handleMaterialChange"
             />
         </div>
         <div class="ticket-sections-two">
           <!-- Блок местоположения -->
           <LocationBlock 
-            :ticket="ticket"
+            :ticket="localTicket"
             :mode="mode"
             :user-role="userRole"
             @fieldChange="handleFieldChange"
             />
           <!-- Блок информации о клиенте -->
           <ClientInfo 
-            :ticket="ticket" 
+            :ticket="localTicket" 
             :mode="mode"
             :user-role="userRole"
             @fieldChange="handleFieldChange" 
@@ -86,6 +87,7 @@
 
 <script setup>
 import { defineProps, defineEmits, ref, watch } from 'vue'
+import { getUserRole } from '@/utils/auth.utils'
 import MainInfo from '@/components/tickets/TicketCard/MainInfo.vue'
 import ExecutionBlock from '@/components/tickets/TicketCard/ExecutionBlock.vue'
 import ClientInfo from '@/components/tickets/TicketCard/ClientInfo.vue'
@@ -116,7 +118,11 @@ const props = defineProps({
       workStart: '',
       workEnd: '',
       workCost: null,
+      materials: [],
       requestMethod: '',
+      adress: '',
+      estimatedTravelTime: '',
+      distance: '',
     }),
   },
   mode: {
@@ -128,37 +134,20 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'edit', 'save', 'delete'])
 
-// Локальная функция для обработки изменений
-const handleFieldChange = (field, value) => {
-  console.log(`Field ${field} changed to:`, value)
-  emit('fieldChange', field, value)
-}
-
 // Локальная копия заявки для редактирования
 const localTicket = ref({ ...props.ticket })
 
 // Следим за изменениями пропса ticket
 watch(() => props.ticket, (newTicket) => {
   localTicket.value = { ...newTicket }
+  // Убедимся, что materials всегда массив
+  if (!localTicket.value.materials) {
+    localTicket.value.materials = []
+  }
 }, { immediate: true })
 
 // Роль пользователя
 const userRole = ref('guest')
-
-// Получаем роль из localStorage при создании компонента
-const getUserRole = () => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      return user.role || 'guest'
-    } catch (e) {
-      console.error('Error parsing user for role check:', e)
-      return 'guest'
-    }
-  }
-  return 'guest'
-}
 
 userRole.value = getUserRole()
 
@@ -176,6 +165,23 @@ const showHistory = () => {
   console.log('Показать историю изменений для заявки:', props.ticket.id)
   alert('Функция "История изменений" в разработке')
 }
+
+// Обработчик изменения материалов
+const handleMaterialChange = (materials) => {
+  localTicket.value = {
+    ...localTicket.value,
+    materials: materials
+  }
+}
+
+// Обработчик изменений полей
+const handleFieldChange = (field, value) => {
+  console.log(`Field ${field} changed to:`, value)
+  localTicket.value = {
+    ...localTicket.value,
+    [field]: value
+  }
+}
 </script>
 
 <style scoped>
@@ -189,7 +195,7 @@ const showHistory = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1201;
   animation: fadeIn 0.3s ease;
 }
 

@@ -64,7 +64,6 @@ const sidebarVisible = ref(true);
 .header {
   background: #031432;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 10;
   position: sticky;
   top: 0;
   height: 60px;
@@ -72,7 +71,6 @@ const sidebarVisible = ref(true);
 
 .content {
   flex: 1;
-  overflow-y: auto;
   margin-top: 10px;
 }
 

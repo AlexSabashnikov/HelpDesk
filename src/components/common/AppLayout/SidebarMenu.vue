@@ -345,7 +345,7 @@ onUnmounted(() => {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 1000;
+  z-index: 1200;
 }
 
 /* Шапка сайдбара (всегда видимая и неизменная) */
@@ -360,7 +360,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 59px;
+  min-height: 55px;
   background: #031432;
   z-index: 1002;
 }
@@ -402,9 +402,9 @@ onUnmounted(() => {
 .sidebar-nav {
   position: fixed;
   left: 0;
-  top: 59px;
+  top: 55px;
   width: 250px;
-  height: calc(100vh - 59px);
+  height: calc(100vh - 55px);
   background: #031432;
   transform: translateX(-100%);
   transition: transform 0.3s ease;

@@ -18,15 +18,15 @@ defineProps({
 
 <style scoped>
 .ui-button {
-  padding: 2px 12px;
-  border-radius: 10px;
+  padding: 4px 12px;
+  border-radius: 5px;
   cursor: pointer;
   font-size: 12px;
   font-weight: bold;
 }
 
 .ui-button:hover {
-  transform: scale(1.02);
+  transform: scale(1.01);
 }
 
 .variant-primary {
@@ -36,8 +36,14 @@ defineProps({
 
 .variant-crit {
   background: #ffdbdb;
-  color: #d80000;
-  border: 2px solid #d80000;
+  color: #b70c0c;
+  border: 2px solid #b70c0c;
+}
+
+.variant-crit:hover {
+  background: #fff2f2;
+  color: #ea1717;
+  border: 2px solid #ea1717;
 }
 
 .variant-new {
@@ -46,9 +52,21 @@ defineProps({
   border: 2px solid #08105f;
 }
 
+.variant-new:hover {
+  background: #f4f5ff;
+  color: #0f1faf;
+  border: 2px solid #0f1faf;
+}
+
 .variant-near {
   background: #fff2d8;
   color: #cd8900;
   border: 2px solid #cd8900;
+}
+
+.variant-near:hover {
+  background: #fff9ed;
+  color: #ce8d0c;
+  border: 2px solid #ce8d0c;
 }
 </style>

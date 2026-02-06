@@ -3,45 +3,342 @@
     Используется для выбора компаний, пользователей, статусов
 -->
 
+<!-- 
+    Выпадающий список с кастомным дизайном
+    Используется для выбора компаний, пользователей, статусов
+-->
+
 <template>
-  <select
-    :value="modelValue"
-    @change="$emit('update:modelValue', $event.target.value)"
-    :class="['ui-select', customClass]"
-  >
-    <option v-if="placeholder" value="">{{ placeholder }}</option>
-    <option v-for="option in options" :key="option.value" :value="option.value">
-      {{ option.label }}
-    </option>
-  </select>
+  <div class="ui-select-wrapper" :class="customClass" ref="wrapperRef">
+    <span class="ui-select-label">{{ label }}</span>
+    <!-- Скрытый нативный select для браузерных функций -->
+    <select
+      :value="modelValue"
+      @change="handleNativeChange"
+      :class="['ui-select-native', customClass]"
+      :placeholder="placeholder"
+      style="display: none"
+    >
+      <option v-if="placeholder && !modelValue" value="" disabled selected>
+        {{ placeholder }}
+      </option>
+      <option v-for="option in options" :key="option.value" :value="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+    
+    <!-- Кастомный инпут для отображения -->
+    <div 
+      class="ui-select-custom"
+      :style="contentStyles"
+      :class="{ 'ui-select-open': showDropdown, 'has-placeholder': !modelValue && placeholder }"
+      @click="toggleDropdown"
+    >
+      <span class="ui-select-value" :style="textStyles">
+        {{ selectedLabel || placeholder || 'Выберите...' }}
+      </span>
+      <svg class="ui-select-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" :style="textStyles">
+        <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    
+    <!-- Кастомный выпадающий список -->
+    <div 
+      v-if="showDropdown" 
+      class="ui-select-dropdown"
+      :style="{ maxHeight: dropdownMaxHeight }"
+      ref="dropdownRef"
+    >
+      <div 
+        v-for="option in options" 
+        :key="option.value" 
+        class="ui-select-option"
+        @click="selectOption(option)"
+        :class="{ 'ui-select-option-selected': isOptionSelected(option) }"
+      >
+        {{ option.label }}
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-defineProps({
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+
+const props = defineProps({
   modelValue: [String, Number],
-  options: Array,
-  placeholder: String,
-  customClass: String, // Добавляем свойство для кастомных классов
+  options: {
+    type: Array,
+    default: () => []
+  },
+  label: {
+    type: String,
+    default: ''
+  },
+  placeholder: {
+    type: String,
+    default: 'Введите текст...'
+  },
+  customClass: String,
+  dropdownMaxHeight: {
+    type: String,
+    default: '200px'
+  },
+  backgroundColor: {
+    type: String,
+    default: null
+  },
+  textColor: {
+    type: String,
+    default: null
+  },
+  borderColor: {
+    type: String,
+    default: null
+  },
 })
 
-defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue'])
+
+const wrapperRef = ref(null)
+const dropdownRef = ref(null)
+const showDropdown = ref(false)
+
+// Получаем выбранную метку
+const selectedLabel = computed(() => {
+  if (!props.modelValue) return ''
+  const option = props.options.find(opt => opt.value === props.modelValue)
+  return option ? option.label : props.modelValue
+})
+
+const contentStyles = computed(() => {
+  const styles = {}
+  if (props.backgroundColor) {
+    styles.backgroundColor = props.backgroundColor
+  }
+  if (props.borderColor) {
+    styles.borderColor = props.borderColor
+  }
+  return styles
+})
+
+const textStyles = computed(() => {
+  const styles = {}
+  if (props.textColor) {
+    styles.color = props.textColor
+  }
+  return styles
+})
+
+// Проверяем, выбрана ли опция
+const isOptionSelected = (option) => {
+  return props.modelValue === option.value
+}
+
+// Переключение выпадающего списка
+const toggleDropdown = () => {
+  showDropdown.value = !showDropdown.value
+}
+
+// Выбор опции
+const selectOption = (option) => {
+  emit('update:modelValue', option.value)
+  showDropdown.value = false
+}
+
+// Обработчик нативного select
+const handleNativeChange = (event) => {
+  emit('update:modelValue', event.target.value)
+}
+
+// Закрытие при клике вне компонента
+const handleClickOutside = (event) => {
+  if (wrapperRef.value && !wrapperRef.value.contains(event.target)) {
+    showDropdown.value = false
+  }
+}
+
+// Обработка клавиш
+const handleKeyDown = (event) => {
+  if (!showDropdown.value) return
+  
+  if (event.key === 'Escape') {
+    showDropdown.value = false
+  }
+}
+
+// Закрытие по клику вне и обработка клавиш
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleKeyDown)
+})
 </script>
 
 <style scoped>
-.ui-select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  background: white;
-  cursor: pointer;
-  outline: none;
-  padding-right: 30px;
-  text-align: left;
-  font-weight: 900;
+.ui-select-wrapper {
+  position: relative;
+  width: 100%;
 }
 
-.ui-select:hover {
-  border-color: #339af0;
+/* Кастомный инпут */
+.ui-select-custom {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #c5c5c5;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #141414;
+  background-color: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  user-select: none;
+}
+
+.ui-select-custom:hover {
+  border-color: #3b82f6;
+}
+
+.ui-select-custom.has-placeholder .ui-select-value {
+  color: #9a9a9a; 
+  font-style: italic;
+}
+
+.ui-select-custom.ui-select-open {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.ui-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.ui-select-label {
+  font-size: 12px;
+  color: #8c8c8c;
+  font-weight: 500;
+}
+
+.ui-select-arrow {
+  color: #6b7280;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.ui-select-custom.ui-select-open .ui-select-arrow {
+  transform: rotate(180deg);
+}
+
+/* Выпадающий список */
+.ui-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  margin-top: 2px;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Опции выпадающего списка */
+.ui-select-option {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.ui-select-option:hover {
+  background-color: #f3f4f6;
+}
+
+.ui-select-option-selected {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.ui-select-option:not(:last-child) {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Нативный select (скрыт) */
+.ui-select-native {
+  display: none;
+}
+
+/* Стили для бейджей приоритета */
+.priority-badge {
+  font-weight: 600;
+  text-align: center;
+}
+
+.priority-crit {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+.priority-high {
+  background-color: #ffedd5 !important;
+  color: #ea580c !important;
+  border-color: #fdba74 !important;
+}
+
+.priority-medium {
+  background-color: #fef3c7 !important;
+  color: #d97706 !important;
+  border-color: #fbbf24 !important;
+}
+
+.priority-low {
+  background-color: #dcfce7 !important;
+  color: #16a34a !important;
+  border-color: #86efac !important;
+}
+
+/* Стиль для типа заявки */
+.ticket-type {
+  text-align: left;
+  font-weight: 400;
+}
+
+/* Отключенное состояние */
+.ui-select-custom:disabled,
+.ui-select-native:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
 }
 </style>

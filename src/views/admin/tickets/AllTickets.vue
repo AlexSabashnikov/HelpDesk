@@ -16,6 +16,7 @@
           placeholder="Поиск по заявкам..."
           @keyup.enter="handleSearch"
           class="search-input"
+          customClass="search-ui-input"
         />
         <button class="search-btn" @click="handleSearch">
           🔍
@@ -55,12 +56,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useTicketsStore } from '@/stores/tickets.store'
 import TicketFilters from '@/components/tickets/TicketFilters.vue'
 import TicketTable from '@/components/tickets/TicketTable.vue'
 import UIButton from '@/components/common/UI/UIButton.vue'
 import UIInput from '@/components/common/UI/UIInput.vue'
+import { isDeadlineOverdue, isDeadlineApproaching, getDeadlineClass } from '@/utils/ticket.utils'
 
 const ticketsStore = useTicketsStore()
 const searchQuery = ref('')
@@ -75,7 +77,12 @@ const pagination = ref({
 })
 const activeFilters = ref({})
 
-// Загрузка заявок
+// Счетчики для всех заявок в системе
+const countOfNewTickets = ref(0)
+const countOfOverdueTickets = ref(0)
+const countOfNearDeadlineTickets = ref(0)
+
+// Загрузка заявок для таблицы (с фильтрацией и пагинацией)
 const loadTickets = async () => {
   loading.value = true
   try {
@@ -94,6 +101,63 @@ const loadTickets = async () => {
   }
 }
 
+// Загрузка ВСЕХ заявок для счетчиков
+const loadAllTicketsForCounters = async () => {
+  try {
+    // Загружаем все заявки без пагинации
+    const params = {
+      limit: 1000, // Или достаточно большое число
+      page: 1,
+      // Не применяем текущие фильтры для счетчиков
+      ...activeFilters.value
+    }
+    
+    // Если нужны абсолютно все заявки, можно сделать отдельный запрос
+    // или использовать другой метод store
+    const response = await ticketsStore.fetchTickets(params)
+    const allTickets = response.data || []
+    
+    // Используем единую логику из ticket.utils.js
+    updateCounters(allTickets)
+    
+  } catch (error) {
+    console.error('Ошибка загрузки счетчиков:', error)
+  }
+}
+
+// Функция обновления счетчиков с использованием утилит
+const updateCounters = (allTickets) => {
+  // Счетчик новых заявок
+  countOfNewTickets.value = allTickets.filter(ticket => ticket.status === 'new').length
+  
+  // Счетчик просроченных заявок - используем isDeadlineOverdue из ticket.utils.js
+  countOfOverdueTickets.value = allTickets.filter(ticket => 
+    isDeadlineOverdue(ticket.deadline)
+  ).length
+  
+  // Счетчик заявок, подходящих к сроку - используем isDeadlineApproaching из ticket.utils.js
+  countOfNearDeadlineTickets.value = allTickets.filter(ticket => 
+    ticket.deadline && 
+    ticket.createdAt && 
+    isDeadlineApproaching(ticket.deadline, ticket.createdAt)
+  ).length
+  
+  console.log('Обновленные счетчики:', {
+    новые: countOfNewTickets.value,
+    просроченные: countOfOverdueTickets.value,
+    подходятКСроку: countOfNearDeadlineTickets.value,
+    всего: allTickets.length
+  })
+  
+  // Для отладки: проверяем, какие заявки считаются просроченными
+  const overdueTickets = allTickets.filter(ticket => isDeadlineOverdue(ticket.deadline))
+  console.log('Просроченные заявки:', overdueTickets.map(t => ({
+    id: t.id,
+    deadline: t.deadline,
+    deadlineClass: getDeadlineClass(t.deadline, t.createdAt)
+  })))
+}
+
 const handleRowClick = (ticket) => {
   console.log('Клик по строке:', ticket)
 }
@@ -109,9 +173,10 @@ const handleDelete = (ticketId) => {
 // Обработчик поиска
 const handleSearch = () => {
   console.log('Поиск по запросу:', searchQuery.value)
-  // Заглушка
   pagination.value.page = 1
   loadTickets()
+  // После применения поиска тоже нужно обновить счетчики
+  loadAllTicketsForCounters()
 }
 
 // Обработчики фильтров
@@ -119,15 +184,19 @@ const handleApplyFilters = (filters) => {
   activeFilters.value = { ...filters }
   pagination.value.page = 1
   loadTickets()
+  // После применения фильтров обновляем счетчики
+  loadAllTicketsForCounters()
 }
 
 const handleResetFilters = () => {
   activeFilters.value = {}
+  pagination.value.page = 1
   loadTickets()
+  // После сброса фильтров обновляем счетчики
+  loadAllTicketsForCounters()
 }
 
 const setQuickFilter = (type) => {
-  
   const quickFiltersMap = {
     new: { status: 'new' },
     overdue: { overdue: true },
@@ -135,61 +204,8 @@ const setQuickFilter = (type) => {
   }
   activeFilters.value = { ...quickFiltersMap[type] }
   loadTickets()
+  // Не обновляем счетчики при быстрых фильтрах, так как они уже отфильтрованы
 }
-
-// Вычисляемые свойства для счетчиков
-const countOfNewTickets = computed(() => {
-  return tickets.value.filter(ticket => ticket.status === 'new').length
-})
-
-const countOfOverdueTickets = computed(() => {
-  return tickets.value.filter(ticket => {
-    if (!ticket.deadline) return false
-    try {
-      const deadline = new Date(ticket.deadline)
-      const now = new Date()
-      return !isNaN(deadline.getTime()) && deadline < now
-    } catch {
-      return false
-    }
-  }).length
-})
-
-const countOfNearDeadlineTickets = computed(() => {
-  return tickets.value.filter(ticket => {
-    if (!ticket.deadline || !ticket.createdAt) return false
-    
-    try {
-      const deadline = new Date(ticket.deadline)
-      const createdAt = new Date(ticket.createdAt)
-      const now = new Date()
-      
-      if (isNaN(deadline.getTime()) || isNaN(createdAt.getTime())) {
-        return false
-      }
-      
-      // Общее время на выполнение (в миллисекундах)
-      const totalTime = deadline.getTime() - createdAt.getTime()
-      
-      // Если срок уже прошел или еще не наступил
-      if (totalTime <= 0 || deadline <= now) {
-        return false
-      }
-      
-      // Прошедшее время с момента создания
-      const elapsedTime = now.getTime() - createdAt.getTime()
-      
-      // Оставшееся время
-      
-      // Если прошло более 80% времени (осталось менее 20%)
-      const elapsedPercentage = (elapsedTime / totalTime) * 100
-      
-      return elapsedPercentage >= 80
-    } catch {
-      return false
-    }
-  }).length
-})
 
 const handlePageChange = (page) => {
   pagination.value.page = page
@@ -199,6 +215,7 @@ const handlePageChange = (page) => {
 // Инициализация
 onMounted(() => {
   loadTickets()
+  loadAllTicketsForCounters()
 })
 </script>
 
@@ -236,20 +253,20 @@ onMounted(() => {
   max-width: 300px;
 }
 
-.search-input{
-  min-width: 250px;
-}
 
-.search-input:focus {
-  outline: none;
-  border-color: #4dabf7;
+.search-ui-input :deep(.ui-input) {
+  padding-top: 2px !important;
+  padding-left: 10px !important;
+  padding-bottom: 2px !important;
+  border-radius: 20px 0 0 20px !important; 
+  font-size: 14px !important;
+  margin-bottom: 2px !important;
 }
 
 .search-btn {
   background: #71bfff;
   color: white;
-  border: 1px solid #b2b2b2;
-  border-left: none;
+  border: 1px solid #1296e8;
   border-radius: 0 20px 20px 0;
   padding: 4px 10px;
   cursor: pointer;

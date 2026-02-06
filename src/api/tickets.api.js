@@ -23,24 +23,28 @@ export const ticketsApi = {
     const allTickets = [ {
           id: 1,
           number: '1001',
-          subject: 'Проблемы\n сетевого\n подключения',
+          subject: 'Проблемы сетевого подключения',
           priority: 'high',
           status: 'inProgress',
           type: 'onsite',
-          client: { name: 'Сбер №15' },
-          executor: { name: 'Иванов И.И.' },
+          client: { name: 'Сбер 15' },
+          executor: { name: 'Иванов Иван Иванович' },
           createdAt: '2025-12-22T15:21:00Z',
-          deadline: '2026-02-22T15:21:00Z',
+          deadline: '2026-02-12T15:21:00Z',
           contactPerson: 'Сабашников Александр Евгеньевич',
           phone: '+79535671806',
           email: 'Sabashnikov@yandex.ru',
-          description: 'Невозможно\n подключиться\n к\n VPN\n\n,\n потому\n что\n провайдер\n Ростелеком',
+          description: 'Невозможно подключиться к VPN, потому что провайдер Ростелеком',
           workStart: '2025-12-23T09:00:00Z',
           workEnd: '2025-12-23T12:00:00Z',
           workCost: 6000,
           requestMethod: 'WEB-портал',
-          distance: 'Не рассчитано',
-          address: 'г. Нижний Новгород, ул. Алексеевская, д.8 г. Нижний Новгород, ул. Алексеевская, д.8 г. Нижний Новгород, ул. Алексеевская, д.8',
+          distance: '5,5 км',
+          adress: 'г. Нижний Новгород, ул. Алексеевская, д.8',
+          materials: [ { id: 1, name: "Роутер TP-Link Archer AX10", unitPrice: 4975, quantity: 1, total: 4975 },
+            { id: 2, name: "Кабель UTP Cat.6 5м", unitPrice: 350, quantity: 2, total: 700 },
+            { id: 3, name: "Коннектор RJ-45", unitPrice: 25, quantity: 8, total: 200 }
+          ]
         },
         {
           id: 2,
@@ -50,7 +54,7 @@ export const ticketsApi = {
           type: 'onsite',
           status: 'new',
           client: { name: 'ПАО "АК БАРС" Банк' },
-          executor: { name: '-' },
+          executor: { name: '' },
           address: 'ул. Алексеевская, 8',
           createdAt: '2025-12-22T15:21:00Z',
           deadline: '2026-01-29T15:21:00Z',
@@ -65,7 +69,7 @@ export const ticketsApi = {
           executor: { name: 'Бакаринов В.В.' },
           address: 'ул. Ульянова, 8',
           createdAt: '2025-12-22T15:21:00Z',
-          deadline: '2026-01-22T15:21:00Z',
+          deadline: '2026-02-02T15:21:00Z',
         },
         {
           id: 4,
@@ -77,7 +81,7 @@ export const ticketsApi = {
           executor: { name: 'Сабашников А.Е.' },
           address: 'ул. Родионова, 178',
           createdAt: '2025-11-05T15:21:00Z',
-          deadline: '2026-02-05T15:21:00Z',
+          deadline: '2026-02-15T18:05:00Z',
         },
         {
           id: 5,
@@ -226,3 +230,60 @@ export const ticketsApi = {
     }
   }
 }
+
+/*export const ticketsApi = {
+  // Создание заявки
+  async createTicket(ticketData) {
+    try {
+      const response = await apiClient.post('/api/tickets', ticketData)
+      return response.data
+    } catch (error) {
+      console.error('API Error creating ticket:', error)
+      throw error
+    }
+  },
+  
+  // Получение списка заявок
+  async getTickets(params = {}) {
+    try {
+      const response = await apiClient.get('/api/tickets', { params })
+      return response.data
+    } catch (error) {
+      console.error('API Error getting tickets:', error)
+      throw error
+    }
+  },
+  
+  // Получение одной заявки
+  async getTicket(id) {
+    try {
+      const response = await apiClient.get(`/api/tickets/${id}`)
+      return response.data
+    } catch (error) {
+      console.error('API Error getting ticket:', error)
+      throw error
+    }
+  },
+  
+  // Обновление заявки
+  async updateTicket(id, ticketData) {
+    try {
+      const response = await apiClient.put(`/api/tickets/${id}`, ticketData)
+      return response.data
+    } catch (error) {
+      console.error('API Error updating ticket:', error)
+      throw error
+    }
+  },
+  
+  // Удаление заявки
+  async deleteTicket(id) {
+    try {
+      const response = await apiClient.delete(`/api/tickets/${id}`)
+      return response.data
+    } catch (error) {
+      console.error('API Error deleting ticket:', error)
+      throw error
+    }
+  }
+}*/
