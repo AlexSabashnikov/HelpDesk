@@ -74,7 +74,7 @@
 import { defineProps, defineEmits } from 'vue'
 import { formatDate } from '@/utils/date.utils'
 import UILabel from '@/components/common/UI/UILabel.vue'
-import MaterialsTable from '@/components/forms/MaterialsTable.vue'
+import MaterialsTable from '@/components/tables/MaterialsTable.vue'
 
 defineProps({
   ticket: {

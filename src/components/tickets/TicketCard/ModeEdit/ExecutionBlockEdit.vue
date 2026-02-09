@@ -70,7 +70,7 @@
 import { defineProps, defineEmits } from 'vue'
 import UIComboBox from '@/components/common/UI/UIComboBox.vue'
 import UIInput from '@/components/common/UI/UIInput.vue'
-import MaterialsTable from '@/components/forms/MaterialsTable.vue'
+import MaterialsTable from '@/components/tables/MaterialsTable.vue'
 import { formatDateTimeLocal, isInvalidDate } from '@/utils/date.utils'
 import { getExecutorOptions } from '@/utils/select.options.utils'
 import { 

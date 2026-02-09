@@ -4,7 +4,6 @@
     Быстрые фильтры: Новые, Просроченные, Подходят к сроку
 -->
 
-<!-- src/views/admin/tickets/AllTickets.vue -->
 <template>
   <!-- Основной контент страницы -->
   <div class="all-tickets-page">

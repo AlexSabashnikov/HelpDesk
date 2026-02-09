@@ -94,7 +94,7 @@
 
 <script setup>
 import { defineProps, defineEmits } from 'vue'
-import MaterialsTable from '@/components/forms/MaterialsTable.vue'
+import MaterialsTable from '@/components/tables/MaterialsTable.vue'
 import UIComboBox from '@/components/common/UI/UIComboBox.vue'
 import UIInput from '@/components/common/UI/UIInput.vue'
 import UILabel from '@/components/common/UI/UILabel.vue'
