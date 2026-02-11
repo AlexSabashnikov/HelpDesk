@@ -9,6 +9,7 @@
     <UITable
       :columns="columns"
       :data="users"
+      :grid-template-columns="gridTemplateColumns"
       :loading="loading"
       :sortable="true"
       :pagination="true"
@@ -29,35 +30,24 @@
         </div>
       </template>
 
-      <!-- Кастомный слот для колонки "Роль" -->
       <template #cell-role="{ value }">
         <span class="role-badge" :class="getRoleClass(value?.name || value)">
           {{ getRoleLabel(value?.name || value) }}
         </span>
       </template>
 
-      <!-- Кастомный слот для колонки "Организация" -->
       <template #cell-organization="{ value }">
         <div class="organization-cell" :title="value?.name">
           {{ truncateText(value?.name, 30) || '—' }}
         </div>
       </template>
 
-      <!-- Кастомный слот для колонки "Объект" -->
       <template #cell-object="{ value }">
         <div class="object-cell" :title="value?.name">
           {{ truncateText(value?.name, 30) || '—' }}
         </div>
       </template>
 
-      <!-- Кастомный слот для колонки "Дата создания" -->
-      <template #cell-created_at="{ value }">
-        <span class="date-cell">
-          {{ formatDate(value) }}
-        </span>
-      </template>
-
-      <!-- Слот для состояния загрузки -->
       <template #loading>
         <div class="custom-loading">
           <div class="spinner"></div>
@@ -65,7 +55,6 @@
         </div>
       </template>
 
-      <!-- Слот для пустого состояния -->
       <template #empty>
         <div class="custom-empty">
           <div class="empty-icon">👤</div>
@@ -75,7 +64,6 @@
       </template>
     </UITable>
 
-    <!-- Дополнительная пагинация Laravel (если нужно показать ссылки) -->
     <div v-if="showLaravelPagination && pagination.links && pagination.links.length > 3" class="laravel-pagination-wrapper">
       <nav class="pagination-nav" aria-label="Навигация по страницам">
         <ul class="pagination-list">
@@ -130,7 +118,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, computed } from 'vue'
 import UITable from '@/components/common/UI/UITable.vue'
 
 defineProps({
@@ -162,14 +150,19 @@ defineProps({
 
 const emit = defineEmits(['rowClick', 'pageChange', 'sortChange'])
 
-// Столбцы таблицы
+// Простые колонки без gridColumn
 const columns = [
-  { key: 'full_name', title: 'ФИО', width: '200px' },
-  { key: 'email', title: 'Email', width: '150px' },
-  { key: 'role', title: 'Роль', width: '140px' },
-  { key: 'organization', title: 'Организация', width: '180px' },
-  { key: 'object', title: 'Объект', width: '180px' },
+  { key: 'full_name', title: 'Пользователь', align: 'left' },
+  { key: 'email', title: 'Email', align: 'left' },
+  { key: 'role', title: 'Роль', align: 'center' },
+  { key: 'organization', title: 'Организация', align: 'left' },
+  { key: 'object', title: 'Объект', align: 'left' },
 ]
+
+// Grid шаблон
+const gridTemplateColumns = computed(() => {
+  return '8fr 6fr 5fr 6fr 6fr'
+})
 
 // Форматирование ФИО
 const formatFullName = (lastName, firstName, middleName) => {
@@ -208,23 +201,6 @@ const truncateText = (text, maxLength) => {
   if (!text) return ''
   if (text.length <= maxLength) return text
   return text.substring(0, maxLength) + '...'
-}
-
-// Форматирование даты
-const formatDate = (dateString) => {
-  if (!dateString) return '—'
-  
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  } catch (error) {
-    console.log(error)
-    return '—'
-  }
 }
 
 // Классы для ролей
@@ -276,15 +252,19 @@ const getRoleLabel = (roleName) => {
   overflow: hidden;
 }
 
-/* Стили для бейджей ролей */
+/* Убираем лишние стили, так как grid задается через пропсы */
 .role-badge {
   display: inline-block;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 300;
   text-align: center;
-  min-width: 100px;
+  min-width: 115px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .role-admin {
@@ -293,17 +273,17 @@ const getRoleLabel = (roleName) => {
 }
 
 .role-dispatcher {
-  background-color: #17a2b8;
+  background-color: #0fa873;
   color: white;
 }
 
 .role-engineer {
-  background-color: #28a745;
+  background-color: #195698;
   color: white;
 }
 
 .role-client {
-  background-color: #6c757d;
+  background-color: #16961a;
   color: white;
 }
 
@@ -315,16 +295,9 @@ const getRoleLabel = (roleName) => {
 /* Ячейки с обрезанным текстом */
 .organization-cell,
 .object-cell {
-  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* Ячейка с датой */
-.date-cell {
-  font-size: 13px;
-  color: #666;
 }
 
 /* Кастомные состояния загрузки и пустого состояния */
@@ -446,52 +419,5 @@ const getRoleLabel = (roleName) => {
   font-size: 14px;
   color: #6c757d;
   text-align: center;
-}
-
-/* Адаптивность */
-@media (max-width: 1200px) {
-  .role-badge {
-    min-width: 80px;
-    padding: 3px 8px;
-    font-size: 11px;
-  }
-  
-  .organization-cell,
-  .object-cell {
-    max-width: 120px;
-  }
-  
-  .page-link {
-    padding: 6px 8px;
-    min-width: 35px;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 768px) {
-  .users-table-wrapper {
-    font-size: 12px;
-  }
-  
-  .role-badge {
-    font-size: 10px;
-    padding: 2px 6px;
-    min-width: 70px;
-  }
-  
-  .pagination-list {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  .page-link {
-    padding: 4px 6px;
-    min-width: 30px;
-    font-size: 12px;
-  }
-  
-  .prev-link, .next-link {
-    min-width: 60px;
-  }
 }
 </style>

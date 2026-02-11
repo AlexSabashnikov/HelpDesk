@@ -5,47 +5,76 @@
 
 <template>
   <div class="ui-table">
-    <table class="table">
-      <thead>
-        <tr>
-          <th v-for="column in columns" :key="column.key">
-            <div class="column-header" @click="() => handleSort(column.key)">
-              <span>{{ column.title }}</span>
-              <span v-if="sortBy === column.key" class="sort-icon">
-                {{ sortDirection === 'asc' ? '▲' : '▼' }}
-              </span>
-            </div>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="(row, index) in data"
-          :key="row.id || index"
-          @click="() => $emit('rowClick', row)"
-          :class="{ clickable: rowClickable, hoverable: hoverable }"
+    <!-- Grid-based таблица -->
+    <div class="grid-table">
+      <!-- Header row -->
+      <div 
+        class="grid-header"
+        :style="{ gridTemplateColumns: gridTemplateColumns }"
+      >
+        <div 
+          v-for="column in columns" 
+          :key="`header-${column.key}`" 
+          class="grid-cell header-cell"
+          :style="{ textAlign: column.align || 'left' }"
         >
-          <td v-for="column in columns" :key="column.key">
-            <slot :name="`cell-${column.key}`" :value="row[column.key]" :row="row" :column="column">
-              {{ row[column.key] }}
-            </slot>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          <div 
+            class="column-header" 
+            @click="() => handleSort(column.key)"
+            :class="{ sortable: sortable }"
+          >
+            <span class="column-title">{{ column.title }}</span>
+            <span v-if="sortable && sortBy === column.key" class="sort-icon">
+              {{ sortDirection === 'asc' ? '▲' : '▼' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data rows -->
+      <div 
+        v-for="(row, index) in data"
+        :key="row.id || index"
+        class="grid-row"
+        :style="{ gridTemplateColumns: gridTemplateColumns }"
+        :class="{ 
+          clickable: rowClickable, 
+          hoverable: hoverable,
+        }"
+        @click="() => $emit('rowClick', row)"
+      >
+        <div 
+          v-for="column in columns" 
+          :key="`${row.id || index}-${column.key}`"
+          class="grid-cell data-cell"
+          :style="{ textAlign: column.align || 'left' }"
+        >
+          <slot 
+            :name="`cell-${column.key}`" 
+            :value="row[column.key]" 
+            :row="row" 
+            :column="column"
+          >
+            {{ row[column.key] }}
+          </slot>
+        </div>
+      </div>
+    </div>
 
     <!-- Состояние загрузки -->
     <div v-if="loading" class="loading-state">
-      <slot name="loading"> Загрузка данных... </slot>
+      <slot name="loading">Загрузка данных...</slot>
     </div>
 
     <!-- Пустое состояние -->
     <div v-if="!loading && (!data || data.length === 0)" class="empty-state">
-      <slot name="empty"> Данные отсутствуют </slot>
+      <slot name="empty">Данные отсутствуют</slot>
     </div>
   </div>
-  <!-- Пагинация (если включена и есть данные) -->
-    <UIPagination v-if="pagination && totalItems > 0 && totalItems > pageSize"
+
+  <!-- Пагинация -->
+  <UIPagination 
+    v-if="pagination && totalItems > 0 && totalItems > pageSize"
     :current-page="currentPage"
     :total="totalItems"
     :page-size="pageSize"
@@ -60,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch, computed  } from 'vue'
+import { ref, defineProps, defineEmits, watch } from 'vue'
 import UIPagination from '@/components/common/UI/UIPagination.vue'
 
 const props = defineProps({
@@ -72,6 +101,10 @@ const props = defineProps({
   data: {
     type: Array,
     default: () => [],
+  },
+  gridTemplateColumns: {
+    type: String,
+    default: 'repeat(6, 1fr)' // 6 колонок по умолчанию
   },
   loading: {
     type: Boolean,
@@ -95,7 +128,7 @@ const props = defineProps({
   },
   pageSize: {
     type: Number,
-    default: 0, // ФИКСИРОВАННОЕ ЗНАЧЕНИЕ 20
+    default: 0,
   },
   currentPage: {
     type: Number,
@@ -133,10 +166,6 @@ const sortBy = ref('')
 const sortDirection = ref('asc')
 const localCurrentPage = ref(props.currentPage)
 
-const data = computed(() => {
-  return props.data 
-})
-
 const handleSort = (columnKey) => {
   if (!props.sortable) return
 
@@ -152,6 +181,7 @@ const handleSort = (columnKey) => {
     sortDirection: sortDirection.value,
   })
 }
+
 const handlePageChange = (page) => {
   localCurrentPage.value = page
   emit('pageChange', page)
@@ -162,7 +192,6 @@ watch(() => props.currentPage, (newPage) => {
 })
 
 watch(() => props.data, () => {
-  // Сбрасываем на первую страницу при изменении данных
   localCurrentPage.value = 1
 }, { deep: true })
 </script>
@@ -172,43 +201,78 @@ watch(() => props.data, () => {
   overflow-x: auto;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
   background: white;
 }
 
-.table th {
+.grid-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-header {
+  display: grid;
   background-color: #f8f9fa;
-  padding: 8px 16px;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1d1d1d;
   border-bottom: 2px solid #dee2e6;
+  max-height: 40px;
+}
+
+.grid-row {
+  display: grid;
+  border-bottom: 1px solid #e0e0e0;
+  max-height: 40px;
+}
+
+/* Ключевое изменение: вернуть padding в grid-cell */
+.grid-cell {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  max-height: 40px;
+  box-sizing: border-box; 
+}
+
+.header-cell {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1d1d1d;
+  user-select: none;
+}
+
+.data-cell {
+  font-size: 14px;
+  color: #212529;
 }
 
 .column-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+}
+
+.column-header.sortable {
   cursor: pointer;
-  user-select: none;
+}
+
+.column-header.sortable:hover .column-title {
+  color: #007bff;
+}
+
+.column-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sort-icon {
   font-size: 10px;
   color: #6c757d;
-}
-
-.table td {
-  padding: 0px 16px;
-  height: 40px;
-  border-bottom: 1px solid #e0e0e0;
-  color: #212529;
+  margin-left: 4px;
+  flex-shrink: 0;
 }
 
 .clickable {
@@ -216,7 +280,7 @@ watch(() => props.data, () => {
 }
 
 .hoverable:hover {
-  background-color: #ebedf4;
+  background-color: #ebedf4 !important;
 }
 
 .loading-state,

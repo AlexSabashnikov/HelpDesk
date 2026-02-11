@@ -11,12 +11,13 @@
     <UITable
       :columns="columns"
       :data="formattedTickets"
+      :grid-template-columns="gridTemplateColumns"
       :loading="loading"
       :sortable="true"
-      :pagination="true" 
+      :pagination="true"
       :page-size="pagination.limit"
       :current-page="currentPage"
-      :show-page-size-selector="false" 
+      :show-page-size-selector="false"
       :show-page-jump="false"
       :total-items="props.pagination.total"
       @rowClick="handleRowClick"
@@ -145,16 +146,21 @@ const formattedTickets = computed(() => {
 const currentPage = computed(() => props.pagination.page || 1)
 
 const columns = [
-  { key: 'priority', title: '^', width: '10px' },
-  { key: 'number', title: '№ заявки', width: '150px' },
-  { key: 'subject', title: 'Тема', width: '300px' },
-  { key: 'clientName', title: 'Клиент', width: '200px' },
-  { key: 'status', title: 'Статус', width: '150px' },
-  { key: 'executorName', title: 'Исполнитель', width: '180px' },
-  { key: 'createdAt', title: 'Время создания', width: '160px' },
-  { key: 'deadline', title: 'Срок', width: '160px' },
-  { key: 'edit', title: '', width: '160px' },
+  { key: 'priority', title: '', align: 'left' },
+  { key: 'number', title: '№ заявки', align: 'left' },
+  { key: 'subject', title: 'Тема', align: 'left' },
+  { key: 'clientName', title: 'Клиент', align: 'left' },
+  { key: 'status', title: 'Статус', align: 'left' },
+  { key: 'executorName', title: 'Исполнитель', align: 'left' },
+  { key: 'createdAt', title: 'Время создания', align: 'left' },
+  { key: 'deadline', title: 'Срок', align: 'left' },
+  { key: 'edit', title: '',  align: 'left' },
 ]
+
+// Grid шаблон
+const gridTemplateColumns = computed(() => {
+  return '1fr 4fr 10fr 7fr 6fr 7fr 5fr 5fr 2fr'
+})
 
 // Добавляем режим
 const currentMode = ref('view') // 'view' или 'edit'
@@ -243,47 +249,61 @@ const handlePageChange = (page) => {
   overflow: hidden;
 }
 
-/* Индикатор приоритета (цветные линии) */
+:deep(.grid-cell:has(.priority-indicator)) {
+  padding: 0px 10px !important; /* Убираем padding */
+  max-height: none !important; /* Убираем ограничение высоты */
+  height: 98%; /* Растягиваем на всю высоту */
+}
+
+:deep(.grid-row) {
+  position: relative; /* Для корректного позиционирования */
+}
+
 .priority-indicator {
   width: 100%;
   height: 100%;
-  min-height: 40px; 
   display: flex;
-  align-items: center;
+  align-items: stretch; /* Растягиваем по вертикали */
   justify-content: center;
-  position: relative;
+  min-height: 39px; /* Соответствует высоте строки */
 }
 
-/* Скрытый текст для сохранения высоты строки */
 .priority-text {
   visibility: hidden;
   font-size: 0;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  min-width: 70px;
+  line-height: 0;
 }
 
 .priority-crit {
-  border-left: 10px solid #e90000;
+  background: linear-gradient(to right, #e90000 0px, #e90000 8px, transparent 8px);
 }
 
 .priority-high {
-  border-left: 10px solid #e98c00;
+  background: linear-gradient(to right, #e98c00 0px, #e98c00 8px, transparent 8px);
 }
 
 .priority-medium {
-  border-left: 10px solid #e9da00;
+  background: linear-gradient(to right, #e9da00 0px, #e9da00 8px, transparent 8px);
 }
 
 .priority-low {
-  border-left: 10px solid #16bd00;
+  background: linear-gradient(to right, #16bd00 0px, #16bd00 8px, transparent 8px);
+}
+
+/* Бейдж статуса */
+.status-badge {
+  display: inline-block;
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  min-width: 80px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2; /* Фиксированный line-height */
 }
 
 .status-new {
@@ -303,11 +323,13 @@ const handlePageChange = (page) => {
   color: #938900;
   border: 2px solid #d3c500;
 }
+
 .status-stopped {
   background: #f2d0ff;
   color: #8d00c5;
   border: 2px solid #8d00c5;
 }
+
 .status-completed {
   background: #d2ffcc;
   color: #16bd00;
@@ -323,22 +345,23 @@ const handlePageChange = (page) => {
 /* Номер заявки */
 .ticket-number {
   font-family: 'Courier New', monospace;
-  font-weight: bold;
+  font-weight: 600;
   color: #3b82f6;
+  line-height: 1.2;
 }
 
 /* Тема заявки */
 .ticket-subject {
-  max-width: 250px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 /* Кнопка редактирования */
 .edit-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background: #f3f4f6;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -346,69 +369,25 @@ const handlePageChange = (page) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   transition: all 0.2s;
-  padding: 0;
-  margin: 0 auto;
+  line-height: 1;
 }
 
 .edit-btn:hover {
-  background: #e5e7eb;
+  background: #c9dbff;
   border-color: #9ca3af;
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .edit-btn:active {
   transform: scale(0.95);
 }
 
-/* Кастомные состояния */
-.custom-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 60px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.custom-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 60px;
-  color: #6c757d;
-}
-
-.custom-empty span {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.custom-empty p {
-  font-size: 14px;
-  color: #adb5bd;
-}
-
 /* Стили для сроков */
+.deadline-cell {
+  line-height: 1.2;
+}
 
 .deadline-overdue {
   color: #dc2626;
