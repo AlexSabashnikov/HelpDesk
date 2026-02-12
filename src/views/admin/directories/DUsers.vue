@@ -4,23 +4,22 @@
     Управление ролями, правами доступа, блокировка аккаунтов
 -->
 
+<!-- src/views/admin/directories/DUsers.vue -->
 <template>
   <!-- Основной контент страницы -->
   <div class="all-users-page">
     <!-- Панель с кнопками над таблицей -->
     <div class="table-controls">
       <div class="search-section">
-        
+        <!-- ваш поиск -->
       </div>
-
-      <!-- Быстрые фильтры по ролям -->
       <div class="quick-filters">
-        
+        <!-- фильтры -->
       </div>
-
     </div>
 
     <!-- Таблица пользователей -->
+    <!-- добавлено: кнопка Profile будет эмитить это событие -->
     <div class="table-section">
       <UsersTable
         :users="users"
@@ -28,10 +27,18 @@
         :pagination="paginationData"
         :show-laravel-pagination="false"
         @rowClick="handleRowClick"
+        @openProfile="handleRowClick"        
         @pageChange="handlePageChange"
         @sortChange="handleSortChange"
       />
     </div>
+
+    <!-- Модалка профиля (берёт данные из selectedUser) -->
+    <UserProfileModal
+      v-model="modalVisible"
+      mode="user"
+      :user="selectedUser"
+    />
   </div>
 </template>
 
@@ -39,6 +46,7 @@
 import { ref, onMounted } from 'vue'
 import { useUsersStore } from '@/stores/users.store'
 import UsersTable from '@/components/tables/UsersTable.vue'
+import UserProfileModal from '@/components/common/UI/UserProfileModal.vue' // <-- импорт модалки
 
 const usersStore = useUsersStore()
 const searchQuery = ref('')
@@ -74,41 +82,54 @@ const loadUsers = async () => {
       ...activeFilters.value,
       ...activeSort.value,
     }
-    
-    console.log("Вызов стора")
+
     const response = await usersStore.fetchUsers(params)
-    console.log(response)
-    // Ожидаем структуру Laravel Paginator
-    if (response.data) {
-      users.value = response.data
-      
-      // Обновляем пагинацию из ответа сервера
+    // Ожидаем структуру Laravel Paginator или похожую
+    // Поддерживаем два варианта: 1) response.data (Laravel) или 2) response (если store возвращает уже data)
+    const payload = response.data || response
+
+    if (Array.isArray(payload)) {
+      users.value = payload
+      // pagination остаётся прежним (если нет мета)
+    } else if (payload.data && Array.isArray(payload.data)) {
+      users.value = payload.data
+      // обновляем пагинацию (защитно — берём поля от payload.meta или напрямую)
       paginationData.value = {
-        current_page: response.current_page || 1,
-        last_page: response.last_page || 1,
-        per_page: response.per_page || 10,
-        total: response.total || 0,
-        links: response.links || [],
-        from: response.from || 0,
-        to: response.to || 0
+        current_page: payload.current_page || payload.meta?.page || paginationData.value.current_page,
+        last_page: payload.last_page || payload.meta?.last_page || paginationData.value.last_page,
+        per_page: payload.per_page || payload.meta?.per_page || paginationData.value.per_page,
+        total: payload.total || payload.meta?.total || paginationData.value.total,
+        links: payload.links || payload.meta?.links || paginationData.value.links,
+        from: payload.from || paginationData.value.from,
+        to: payload.to || paginationData.value.to
+      }
+    } else {
+      // fallback: если usersStore.fetchUsers вернул объект с data на верхнем уровне
+      if (response.data && Array.isArray(response.data)) {
+        users.value = response.data
+      } else {
+        users.value = response // попытка использовать то, что пришло
       }
     }
   } catch (error) {
     console.error('Ошибка загрузки пользователей:', error)
   } finally {
-    
     loading.value = false
   }
 }
 
 // Обработчик клика по строке (открытие модального окна)
 const handleRowClick = (user) => {
-  console.log('Клик по пользователю:', user)
+  // На всякий случай убедимся, что у нас объект пользователя (и нет ссылок/ID)
+  if (!user) return
+  // Если row пришёл не в "полном" формате, можно запросить по id из usersStore.getUserById
+  // но по заданию — берем из таблицы. Если надо — можно добавить fallback:
+  // if (!user.email && user.id) user = await usersStore.getUserById(user.id)
   selectedUser.value = user
   modalVisible.value = true
 }
 
-// Обработчик сортировки
+// Остальные обработчики (без изменений)
 const handleSortChange = (sortOptions) => {
   const { sortBy, sortDirection } = sortOptions
   activeSort.value = {
@@ -118,7 +139,6 @@ const handleSortChange = (sortOptions) => {
   loadUsers()
 }
 
-// Обработчик изменения страницы
 const handlePageChange = (page) => {
   paginationData.value.current_page = page
   loadUsers()

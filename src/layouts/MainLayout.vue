@@ -1,9 +1,4 @@
-<!-- 
-    Макет панели администратора
-    Боковое меню с полным доступом ко всем разделам
-    Шапка с навигационной цепочкой и профилем
--->
-
+<!-- src/layouts/MainLayout.vue -->
 <template>
   <div class="admin-layout">
     <!-- Боковое меню -->
@@ -22,10 +17,14 @@
         <template #actions>
           <div class="header-actions">
             <NotificationBell />
-            <UserProfile />
+            <!-- Подписываемся на openProfile -->
+            <UserProfile @openProfile="openProfile" />
           </div>
         </template>
       </Header>
+
+      <!-- Модалка профиля верхнего уровня (layout управляет показом) -->
+      <UserProfileModal v-model="showProfile" mode="self" />
 
       <!-- Контент страницы -->
       <main class="content">
@@ -43,8 +42,16 @@ import Header from '@/components/common/AppLayout/CommonHeader.vue'
 import Breadcrumbs from '@/components/common/AppLayout/BreadCrumbs.vue'
 import NotificationBell from '@/components/common/AppLayout/NotificationBell.vue'
 import UserProfile from '@/components/common/UI/UIProfile.vue'
+import UserProfileModal from '@/components/common/UI/UserProfileModal.vue'
 
 const sidebarVisible = ref(true);
+
+// Флаг модалки профиля
+const showProfile = ref(false)
+
+const openProfile = () => {
+  showProfile.value = true
+}
 </script>
 
 <style scoped>
@@ -66,7 +73,6 @@ const sidebarVisible = ref(true);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
-  height: 60px;
 }
 
 .content {

@@ -62,6 +62,12 @@
           <p>Попробуйте изменить критерии поиска или фильтры</p>
         </div>
       </template>
+
+      <template #cell-actions="{ row }">
+        <div class="actions-cell">
+          <button class="btn btn-sm" @click.stop="openProfile(row)">Профиль</button>
+        </div>
+      </template>
     </UITable>
 
     <div v-if="showLaravelPagination && pagination.links && pagination.links.length > 3" class="laravel-pagination-wrapper">
@@ -148,7 +154,9 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['rowClick', 'pageChange', 'sortChange'])
+const emit = defineEmits(['rowClick', 'pageChange', 'sortChange', 'openProfile'])
+
+const openProfile = (row) => emit('openProfile', row)
 
 // Простые колонки без gridColumn
 const columns = [
