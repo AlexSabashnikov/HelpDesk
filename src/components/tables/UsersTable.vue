@@ -4,6 +4,7 @@
 -->
 
 <template>
+  <UIIcons ref="uiIcons" />
   <div class="users-table-wrapper">
     <!-- Общий компонент таблицы -->
     <UITable
@@ -11,13 +12,19 @@
       :data="users"
       :grid-template-columns="gridTemplateColumns"
       :loading="loading"
-      :sortable="true"
+      :sortable="false"
       :pagination="true"
       :page-size="pagination.per_page"
       :current-page="pagination.current_page"
       :show-page-size-selector="false"
       :show-page-jump="false"
       :total-items="pagination.total"
+      :last-page="pagination.last_page"
+      :from="pagination.from"
+      :to="pagination.to"
+      :links="pagination.links"
+      :prev-page-url="pagination.prev_page_url"
+      :next-page-url="pagination.next_page_url"
       @rowClick="handleRowClick"
       @sortChange="handleSortChange"
       @pageChange="handlePageChange"
@@ -30,21 +37,21 @@
         </div>
       </template>
 
-      <template #cell-role="{ value }">
-        <span class="role-badge" :class="getRoleClass(value?.name || value)">
-          {{ getRoleLabel(value?.name || value) }}
+      <template #cell-role="{ row }">
+        <span class="role-badge" :class="getRoleClass(row.role_id)">
+          {{ getRoleLabel(row.role_id) }}
         </span>
       </template>
 
       <template #cell-organization="{ value }">
         <div class="organization-cell" :title="value?.name">
-          {{ truncateText(value?.name, 30) || '—' }}
+          {{ truncateText(value?.name, 30) || 'Не указан' }}
         </div>
       </template>
 
       <template #cell-object="{ value }">
         <div class="object-cell" :title="value?.name">
-          {{ truncateText(value?.name, 30) || '—' }}
+          {{ truncateText(value?.name, 30) || 'Не указан' }}
         </div>
       </template>
 
@@ -57,75 +64,27 @@
 
       <template #empty>
         <div class="custom-empty">
-          <div class="empty-icon">👤</div>
+          <Icon 
+            :icon="uiIcons?.icons.usersLoadEmpty"
+            class="empty-icon"
+            width="80"
+            height="80"
+          />
           <h3>Пользователи не найдены</h3>
           <p>Попробуйте изменить критерии поиска или фильтры</p>
         </div>
       </template>
-
-      <template #cell-actions="{ row }">
-        <div class="actions-cell">
-          <button class="btn btn-sm" @click.stop="openProfile(row)">Профиль</button>
-        </div>
-      </template>
     </UITable>
-
-    <div v-if="showLaravelPagination && pagination.links && pagination.links.length > 3" class="laravel-pagination-wrapper">
-      <nav class="pagination-nav" aria-label="Навигация по страницам">
-        <ul class="pagination-list">
-          <!-- Предыдущая страница -->
-          <li v-if="pagination.current_page > 1" class="page-item">
-            <button 
-              class="page-link prev-link" 
-              @click="$emit('pageChange', pagination.current_page - 1)"
-            >
-              &laquo; Назад
-            </button>
-          </li>
-
-          <!-- Ссылки на страницы -->
-          <li 
-            v-for="link in pagination.links" 
-            :key="link.label"
-            class="page-item"
-            :class="{
-              'active': link.active,
-              'disabled': !link.url
-            }"
-          >
-            <button 
-              v-if="link.url"
-              class="page-link"
-              :class="{ 'current-page': link.active }"
-              @click="$emit('pageChange', extractPageNumber(link.url))"
-              v-html="link.label"
-            ></button>
-            <span v-else class="page-link disabled" v-html="link.label"></span>
-          </li>
-
-          <!-- Следующая страница -->
-          <li v-if="pagination.current_page < pagination.last_page" class="page-item">
-            <button 
-              class="page-link next-link" 
-              @click="$emit('pageChange', pagination.current_page + 1)"
-            >
-              Вперед &raquo;
-            </button>
-          </li>
-        </ul>
-      </nav>
-
-      <!-- Информация о страницах -->
-      <div class="pagination-info">
-        Показано {{ pagination.from || 0 }} - {{ pagination.to || 0 }} из {{ pagination.total || 0 }} записей
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed } from 'vue'
+import { defineProps, defineEmits, computed, ref } from 'vue'
 import UITable from '@/components/common/UI/UITable.vue'
+import { Icon } from '@iconify/vue'
+import UIIcons from '@/components/common/UI/UIIcons.vue'
+
+const uiIcons = ref()
 
 defineProps({
   users: {
@@ -141,7 +100,7 @@ defineProps({
     default: () => ({
       current_page: 1,
       last_page: 1,
-      per_page: 10,
+      per_page: 20,
       total: 0,
       links: [],
       from: 0,
@@ -154,8 +113,15 @@ defineProps({
   }
 })
 
+
+
 const emit = defineEmits(['rowClick', 'pageChange', 'sortChange', 'openProfile'])
 
+// Обработчик клика по строке таблицы
+const handleRowClick = (row) => {
+  openProfile(row)
+  emit('rowClick', row)
+}
 const openProfile = (row) => emit('openProfile', row)
 
 // Простые колонки без gridColumn
@@ -179,19 +145,7 @@ const formatFullName = (lastName, firstName, middleName) => {
   if (firstName) parts.push(firstName)
   if (middleName) parts.push(middleName)
   
-  return parts.length > 0 ? parts.join(' ') : '—'
-}
-
-// Извлечение номера страницы из URL
-const extractPageNumber = (url) => {
-  if (!url) return 1
-  const match = url.match(/[?&]page=(\d+)/)
-  return match ? parseInt(match[1]) : 1
-}
-
-// Обработчик клика по строке
-const handleRowClick = (user) => {
-  emit('rowClick', user)
+  return parts.length > 0 ? parts.join(' ') : 'Не указан'
 }
 
 // Обработчик изменения страницы
@@ -212,19 +166,15 @@ const truncateText = (text, maxLength) => {
 }
 
 // Классы для ролей
-const getRoleClass = (roleName) => {
-  switch (roleName) {
-    case 'Администратор':
-    case 'admin':
+const getRoleClass = (roleId) => {
+  switch (roleId) {
+    case 1:
       return 'role-admin'
-    case 'Диспетчер':
-    case 'dispatcher':
+    case 2:
       return 'role-dispatcher'
-    case 'Инженер':
-    case 'engineer':
+    case 3:
       return 'role-engineer'
-    case 'Клиент':
-    case 'client':
+    case 4:
       return 'role-client'
     default:
       return 'role-default'
@@ -232,22 +182,18 @@ const getRoleClass = (roleName) => {
 }
 
 // Метки для ролей
-const getRoleLabel = (roleName) => {
-  switch (roleName) {
-    case 'Администратор':
-    case 'admin':
+const getRoleLabel = (roleId) => {
+  switch (roleId) {
+    case 1:
       return 'Администратор'
-    case 'Диспетчер':
-    case 'dispatcher':
+    case 2:
       return 'Диспетчер'
-    case 'Инженер':
-    case 'engineer':
+    case 3:
       return 'Инженер'
-    case 'Клиент':
-    case 'client':
+    case 4:
       return 'Клиент'
     default:
-      return roleName || '—'
+      return '—'
   }
 }
 </script>

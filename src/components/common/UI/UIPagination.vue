@@ -1,5 +1,5 @@
 <!-- 
-    Компонент пагинации
+    Компонент пагинации с поддержкой Laravel Paginator
     Может использоваться отдельно или внутри таблиц
 -->
 
@@ -7,83 +7,46 @@
   <div class="ui-pagination" :class="{ compact, 'no-border': noBorder }">
     <!-- Информация о записях -->
     <div class="pagination-info" v-if="showInfo">
-      {{ startItem }}-{{ endItem }} из {{ total }}
+      {{ from }}-{{ to }} из {{ total }}
     </div>
 
     <div class="pagination-controls">
-      <!-- Кнопка "Назад" -->
+      <!-- Кнопка "Назад" (Previous) -->
       <button
-        class="pagination-btn"
-        :disabled="currentPage === 1"
-        @click="handlePageChange(currentPage - 1)"
+        class="pagination-btn prev-btn"
+        :disabled="!prevPageUrl"
+        @click="handlePageChange(getPageNumberFromUrl(prevPageUrl))"
         :title="prevButtonTitle"
       >
         {{ prevButtonText }}
       </button>
 
-      <!-- Номера страниц -->
+      <!-- Номера страниц из Laravel links -->
       <div class="page-numbers">
-        <!-- Все страницы если их немного -->
-        <template v-if="totalPages <= maxVisiblePages">
+        <template v-for="(link, index) in processedLinks" :key="index">
+          <!-- Разделитель для многоточия -->
+          <span v-if="link.label === '...'" class="page-dots">...</span>
+          
+          <!-- Кнопка страницы -->
           <button
-            v-for="page in totalPages"
-            :key="page"
+            v-else
             class="page-btn"
-            :class="{ active: page === currentPage, 'ellipsis': false }"
-            @click="handlePageChange(page)"
-            :aria-label="`Страница ${page}`"
-          >
-            {{ page }}
-          </button>
-        </template>
-
-        <!-- Сложная логика с точками если много страниц -->
-        <template v-else>
-          <!-- Первая страница -->
-          <button
-            class="page-btn"
-            :class="{ active: 1 === currentPage }"
-            @click="handlePageChange(1)"
-            aria-label="Первая страница"
-          >
-            1
-          </button>
-
-          <!-- Точки если нужно -->
-          <span v-if="currentPage > 3" class="page-dots">...</span>
-
-          <!-- Средние страницы -->
-          <button
-            v-for="page in middlePages"
-            :key="page"
-            class="page-btn"
-            :class="{ active: page === currentPage }"
-            @click="handlePageChange(page)"
-            :aria-label="`Страница ${page}`"
-          >
-            {{ page }}
-          </button>
-
-          <!-- Точки если нужно -->
-          <span v-if="currentPage < totalPages - 2" class="page-dots">...</span>
-
-          <!-- Последняя страница -->
-          <button
-            class="page-btn"
-            :class="{ active: totalPages === currentPage }"
-            @click="handlePageChange(totalPages)"
-            aria-label="Последняя страница"
-          >
-            {{ totalPages }}
-          </button>
+            :class="{ 
+              active: link.active,
+              disabled: !link.url
+            }"
+            :disabled="!link.url"
+            @click="handlePageChange(getPageNumberFromUrl(link.url))"
+            v-html="link.label"
+          ></button>
         </template>
       </div>
 
-      <!-- Кнопка "Вперед" -->
+      <!-- Кнопка "Вперед" (Next) -->
       <button
-        class="pagination-btn"
-        :disabled="currentPage === totalPages"
-        @click="handlePageChange(currentPage + 1)"
+        class="pagination-btn next-btn"
+        :disabled="!nextPageUrl"
+        @click="handlePageChange(getPageNumberFromUrl(nextPageUrl))"
         :title="nextButtonTitle"
       >
         {{ nextButtonText }}
@@ -94,11 +57,14 @@
     <div class="page-size-selector" v-if="showPageSizeSelector">
       <span class="selector-label">{{ pageSizeLabel }}</span>
       <select 
-        v-model="localPageSize" 
+        :value="pageSize" 
         @change="handlePageSizeChange"
         class="page-size-select"
         :aria-label="pageSizeLabel"
       >
+        <option v-for="size in pageSizeOptions" :key="size" :value="size">
+          {{ size }}
+        </option>
       </select>
     </div>
 
@@ -110,7 +76,7 @@
         v-model.number="jumpPage"
         @keyup.enter="handleJumpPage"
         :min="1"
-        :max="totalPages"
+        :max="lastPage"
         class="jump-input"
         aria-label="Номер страницы для перехода"
       />
@@ -125,21 +91,44 @@
 import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
-  // Основные пропсы
+  // Laravel pagination data
   currentPage: {
     type: Number,
-    default: 1,
-    required: true
+    default: 1
+  },
+  lastPage: {
+    type: Number,
+    default: 1
+  },
+  perPage: {
+    type: Number,
+    default: 20
   },
   total: {
     type: Number,
-    default: 0,
-    required: true
+    default: 0
   },
-  pageSize: {
+  from: {
     type: Number,
-    default: 0,
-    required: true
+    default: 0
+  },
+  to: {
+    type: Number,
+    default: 0
+  },
+  links: {
+    type: Array,
+    default: () => []
+  },
+  
+  // URL для навигации (для удобства)
+  prevPageUrl: {
+    type: String,
+    default: null
+  },
+  nextPageUrl: {
+    type: String,
+    default: null
   },
   
   // Настройки отображения
@@ -168,6 +157,12 @@ const props = defineProps({
     default: false
   },
   
+  // Опции для селектора размера страницы
+  pageSizeOptions: {
+    type: Array,
+    default: () => [10, 20, 50, 100]
+  },
+  
   // Тексты
   prevButtonText: {
     type: String,
@@ -194,77 +189,57 @@ const props = defineProps({
 const emit = defineEmits(['pageChange', 'pageSizeChange'])
 
 // Локальные состояния
-const localPageSize = ref(props.pageSize)
 const jumpPage = ref(props.currentPage)
 
-// Вычисляемые свойства
-const totalPages = computed(() => {
-  if (props.total === 0) return 1
-  return Math.max(1, Math.ceil(props.total / props.pageSize))
+// Обрабатываем links для правильного отображения
+const processedLinks = computed(() => {
+  console.log(props.links)
+  if (!props.links || props.links.length === 0) {
+    return []
+  }
+  
+  // Фильтруем ссылки, убираем предыдущую и следующую если они есть в массиве
+  // и оставляем только ссылки на страницы и разделители
+  return props.links.filter(link => {
+    const label = link.label.toLowerCase()
+    return !label.includes('previous') && !label.includes('next')
+  })
 })
 
-const startItem = computed(() => {
-  if (props.total === 0) return 0
-  return (props.currentPage - 1) * props.pageSize + 1
-})
-
-const endItem = computed(() => {
-  if (props.total === 0) return 0
-  const end = props.currentPage * props.pageSize
-  return Math.min(end, props.total)
-})
-
-const middlePages = computed(() => {
-  const pages = []
-  
-  if (totalPages.value <= props.maxVisiblePages) {
-    return pages
-  }
-  
-  let start = Math.max(2, props.currentPage - 1)
-  let end = Math.min(totalPages.value - 1, props.currentPage + 1)
-  
-  // Корректируем если находимся слишком близко к началу или концу
-  if (props.currentPage <= 3) {
-    end = Math.min(4, totalPages.value - 1)
-  }
-  
-  if (props.currentPage >= totalPages.value - 2) {
-    start = Math.max(totalPages.value - 3, 2)
-  }
-  
-  for (let i = start; i <= end; i++) {
-    if (i > 1 && i < totalPages.value) {
-      pages.push(i)
-    }
-  }
-  
-  return pages
-})
+// Извлечение номера страницы из URL
+const getPageNumberFromUrl = (url) => {
+  if (!url) return 1
+  const match = url.match(/[?&]page=(\d+)/)
+  return match ? parseInt(match[1]) : 1
+}
 
 // Обработчики событий
 const handlePageChange = (page) => {
-  if (page >= 1 && page <= totalPages.value && page !== props.currentPage) {
+  if (page && page >= 1 && page <= props.lastPage && page !== props.currentPage) {
     emit('pageChange', page)
-    jumpPage.value = page 
+    jumpPage.value = page
   }
 }
 
+const handlePageSizeChange = (event) => {
+  const newSize = parseInt(event.target.value)
+  emit('pageSizeChange', newSize)
+  // При изменении размера страницы сбрасываем на первую
+  emit('pageChange', 1)
+}
+
 const handleJumpPage = () => {
-  const page = Math.max(1, Math.min(jumpPage.value, totalPages.value))
+  const page = Math.max(1, Math.min(jumpPage.value, props.lastPage))
   handlePageChange(page)
 }
 
+// Следим за изменением currentPage
 watch(() => props.currentPage, (newPage) => {
   jumpPage.value = newPage
 })
 
-watch(() => props.pageSize, (newSize) => {
-  localPageSize.value = newSize
-})
-
-// Сбрасываем пагинацию при изменении total
-watch(() => props.total, () => {
+// Сбрасываем прыжок при изменении lastPage
+watch(() => props.lastPage, () => {
   jumpPage.value = 1
 })
 </script>
@@ -276,6 +251,7 @@ watch(() => props.total, () => {
   align-items: center;
   padding: 16px 24px;
   background-color: #ffffff;
+  border-top: 1px solid #e0e0e0;
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -315,7 +291,7 @@ watch(() => props.total, () => {
   color: #495057;
   transition: all 0.2s;
   user-select: none;
-  padding: 0 8px;
+  padding: 0 12px;
 }
 
 .pagination-btn:hover:not(:disabled) {
@@ -326,6 +302,10 @@ watch(() => props.total, () => {
 .pagination-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.prev-btn, .next-btn {
+  min-width: 40px;
 }
 
 .page-numbers {
@@ -349,9 +329,10 @@ watch(() => props.total, () => {
   color: #495057;
   transition: all 0.2s;
   user-select: none;
+  padding: 0 8px;
 }
 
-.page-btn:hover:not(.active) {
+.page-btn:hover:not(.active):not(:disabled) {
   background-color: #e9ecef;
   border-color: #adb5bd;
 }
@@ -364,11 +345,10 @@ watch(() => props.total, () => {
   cursor: default;
 }
 
-.page-btn.ellipsis {
-  cursor: default;
-  background: none;
-  border: none;
-  min-width: auto;
+.page-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .page-dots {
@@ -448,26 +428,5 @@ watch(() => props.total, () => {
 .jump-btn:hover {
   background-color: #e9ecef;
   border-color: #adb5bd;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .ui-pagination {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  
-  .pagination-info,
-  .pagination-controls,
-  .page-size-selector,
-  .page-jump {
-    justify-content: center;
-    width: 100%;
-  }
-  
-  .pagination-controls {
-    justify-content: center;
-  }
 }
 </style>

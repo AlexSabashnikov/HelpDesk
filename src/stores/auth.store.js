@@ -1,10 +1,13 @@
 /**
- * src/stores/auth.store.js
+ * Хранилище аутентификации
+ * Текущий пользователь, токен, роль, права доступа
+ * Сохранение в localStorage (токен и основные данные)
+ * Хранилище аутентификации с mock-режимом для разработки
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import apiClient from '@/api/axios.config'
+import globalApiClient from '@/api/axios.config'
 import router from '@/router'
 import { emitAuthEvent, clearAuthData as clearAuthDataUtil } from '@/utils/auth.utils'
 
@@ -12,28 +15,24 @@ export const useAuthStore = defineStore('auth', () => {
   // Состояние
   const user = ref(null)
   const isAuthenticated = computed(() => !!user.value)
-  const useMockMode = ref(import.meta.env.DEV) // mock mode in dev
-
-  // Надёжный геттер роли: учитывает, что user может быть null и role — объект или строка.
-  const userRole = computed(() => {
-    try {
-      const r = user.value?.role
-      if (!r) return null
-
-      // если объект с name или name в snake_case
-      if (typeof r === 'object') {
-        const name = r.name || r.name_ru || r.slug || r.id || null
-        return roleConversion(name)
-      }
-
-      // если строка (slug или human)
-      return roleConversion(r)
-    } catch {
-      return null
-    }
-  })
+  const userRole = computed(() => roleConversion(user.value.role.name) || null)
+  const useMockMode = ref(import.meta.env.DEV)
 
   // Методы
+  const roleConversion = (role) => {
+    switch (role) {
+      case 'Администратор':
+        return 'admin'
+      case 'Диспетчер':
+        return 'dispatcher'
+      case 'Инженер':
+        return 'engineer'
+      case 'Клиент':
+        return 'client'
+      default:
+        return null
+    }
+  }
 
   // Mock данные для входа (пример)
   const mockUsers = {
@@ -50,10 +49,16 @@ export const useAuthStore = defineStore('auth', () => {
       updated_at: "2026-01-31T10:27:16.000000Z",
     },
     'disp@test.com': { 
+      created_at: "2026-01-31T10:27:16.000000Z",
+      email_verified_at: null,
+      first_name: "Александр",
       id: 2, 
-      name: 'Сабашников А.Е.', 
+      last_name: 'Сабашников',
+      login: "disp",
+      middle_name: "Евгеньевич",
       email: 'disp@test.com',
-      role: { id: 2, name: 'Диспетчер'},
+      role: { id: 2, name: 'Диспетчер', description: null},
+      updated_at: "2026-01-31T10:27:16.000000Z",
     },
     'engineer@test.com': { 
       id: 3, 
@@ -99,66 +104,63 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  const roleConversion = (role) => {
-    if (!role) return null
-    const r = String(role).toLowerCase()
-    switch (r) {
-      case 'администратор':
-      case 'admin':
-        return 'admin'
-      case 'диспетчер':
-      case 'dispatcher':
-        return 'dispatcher'
-      case 'инженер':
-      case 'engineer':
-        return 'engineer'
-      case 'клиент':
-      case 'client':
-        return 'client'
-      default:
-        return null
-    }
-  }
-
   const login = async (credentials) => {
     try {
       if (useMockMode.value) {
         console.log('🔧 Using mock login mode')
         return await mockLogin(credentials)
       }
+      console.log('Отправляю запрос на /login:', credentials)
 
-      const response = await apiClient.post('/login', credentials)
-      const { user: userData } = response.data || {}
+      const response = await globalApiClient.post('/login', credentials)
 
-      if (!userData) {
+      console.log('Ответ от сервера:', response.data)
+      console.log('Cтруктура ответа:', JSON.stringify(response.data, null, 2))
+      
+      // Проверяем, есть ли ошибка валидации
+      if (response.data?.validator_fails) {
+        throw new Error(response.data.validator_fails)
+      }
+
+      const userData = response.data
+
+      if (!userData?.role.name) {
+        console.log(userData)
         throw new Error('Неверный ответ от сервера')
       }
+      const role = roleConversion(userData.role.name)
+      userData.role.name = role
 
-      // Нормализуем роль ответа
-      const roleLabel = userData.role?.name || userData.role
-      const role = roleConversion(roleLabel)
-      if (role) {
-        // Записываем normalized slug в user.role.name чтобы store.userRole мог прочитать slug
-        userData.role = userData.role || {}
-        userData.role.name = role
-      }
-
+      // Сохраняем данные пользователя
       user.value = userData
-      localStorage.setItem('user', JSON.stringify(userData))
 
+      // Сохраняем в localStorage данные пользователя
+      localStorage.setItem('user', JSON.stringify(userData))
+      
       console.log('✅ Успешный вход, роль:', userData.role?.name || 'не указана')
+      // Редирект по роли
       redirectByRole(userData.role?.name)
+      // Вызываем уведомление
       emitAuthEvent('loginSuccess')
 
       return response.data
     } catch (error) {
       console.error('Ошибка входа:', error)
+    
+      // Если это уже наша кастомная ошибка (с validator_fails)
+      if (error.message && error.message.includes('Учетная запись')) {
+        throw error // Просто пробрасываем дальше
+      }
+    
+      // Ошибка 422 - неверные учетные данные
       if (error.response?.status === 422) {
         const errorMessage = error.response?.data?.validator_fails || 
-                             error.response?.data?.message ||
-                             'Учетная запись не найдена'
+                         error.response?.data?.message ||
+                         'Учетная запись не найдена'
         throw new Error(errorMessage)
       }
+    
+      // Другие ошибки
       throw new Error('Ошибка подключения к серверу')
     }
   }
@@ -169,7 +171,7 @@ export const useAuthStore = defineStore('auth', () => {
         router.push({ name: 'admin-tickets' })
         break
       case 'dispatcher':
-        router.push({ name: 'admin-tickets' })
+        router.push({ name: 'dispatcher-tickets' })
         break
       case 'engineer':
         router.push({ name: 'engineer-tickets' })
@@ -185,30 +187,28 @@ export const useAuthStore = defineStore('auth', () => {
   // Выход пользователя
   const logout = async () => {
     try {
-      await apiClient.post('/logout')
+      await globalApiClient.post('/logout')
     } catch (error) {
+      // Даже если ошибка, все равно очищаем данные
       console.log(error, ' ℹ️ Выход выполнен')
     } finally {
-      user.value = null
-      clearAuthDataUtil(true)
+      //clearAuthData()
       router.push({ name: 'login' })
     }
   }
 
   const clearAuthData = async () => {
-    // очищаем локально
+    // Вызываем уведомление
+    console.log('authStore clearData')
+    await logout()
     user.value = null
-    localStorage.removeItem('user')
     clearAuthDataUtil(true)
-    // Дополнительно можно вызвать logout на сервере
-    try { await apiClient.post('/logout') 
-    } catch {
-      console.log('Вызов logout на сервере')
-    }
   }
 
   const initialize = () => {
+    // Восстанавливаем данные из localStorage
     const savedUser = localStorage.getItem('user')
+    
     if (savedUser) {
       try {
         user.value = JSON.parse(savedUser)
@@ -216,13 +216,16 @@ export const useAuthStore = defineStore('auth', () => {
         console.error('Ошибка инициализации авторизации:', error)
         clearAuthData()
       }
-    }
+    } 
   }
 
   return {
+    // Состояние
     user,
     isAuthenticated,
     userRole,
+    
+    // Действия
     login,
     logout,
     clearAuthData,

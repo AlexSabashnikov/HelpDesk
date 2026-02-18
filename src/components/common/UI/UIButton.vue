@@ -5,15 +5,36 @@
 -->
 
 <template>
-  <button :class="['ui-button', `variant-${variant}`]" @click="$emit('click')">
+  <button 
+    :class="['ui-button', `variant-${variant}`]" 
+    @click="handleClick"
+    :disabled="isClicked"
+  >
     <slot />
   </button>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
   variant: { type: String, default: 'primary' },
 })
+
+const emit = defineEmits(['click'])
+const isClicked = ref(false)
+
+const handleClick = (event) => {
+  if (isClicked.value) return
+  
+  isClicked.value = true
+  emit('click', event)
+  
+  // Сброс флага через небольшую задержку
+  setTimeout(() => {
+    isClicked.value = false
+  }, 300)
+}
 </script>
 
 <style scoped>

@@ -1,23 +1,17 @@
-// src/api/profile.api.js
-import apiClient from '@/api/axios.config'
-
 const profileApi = {
-  // Получить профиль текущего пользователя
+  // Получить профиль текущего пользователя - используем данные из localStorage
   async getProfile() {
     try {
-      const res = await apiClient.get('/profile')
-      return res.data
-    } catch (err) {
-      console.warn('profileApi.getProfile: network error, falling back to localStorage', err)
-      // fallback: try localStorage shape { user: {...}, token: '...' } or raw user
+      // Пытаемся получить данные текущего пользователя из localStorage
       const raw = localStorage.getItem('user')
       if (raw) {
-        try {
-          return { user: JSON.parse(raw) }
-        } catch (parseErr) {
-          console.error('profileApi.getProfile fallback parse error', parseErr)
-        }
+        const userData = JSON.parse(raw)
+        console.log('profileApi.getProfile: получены данные из localStorage', userData)
+        return { user: userData }
       }
+      throw new Error('Данные пользователя не найдены в localStorage')
+    } catch (err) {
+      console.error('profileApi.getProfile: ошибка получения профиля', err)
       throw err
     }
   },
@@ -25,77 +19,85 @@ const profileApi = {
   // Обновить профиль текущего пользователя
   async updateProfile(payload) {
     try {
-      const res = await apiClient.put('/profile', payload)
-      return res.data
-    } catch (err) {
-      console.warn('profileApi.updateProfile: network error, falling back to localStorage', err)
-      // fallback: merge into localStorage user
-      try {
-        const raw = localStorage.getItem('user')
-        if (raw) {
-          const current = JSON.parse(raw)
-          const updated = { ...current, ...payload }
-          localStorage.setItem('user', JSON.stringify(updated))
-          return { user: updated }
+      // В реальном приложении здесь должен быть запрос к серверу
+      // Но пока просто обновляем данные в localStorage
+      const raw = localStorage.getItem('user')
+      if (raw) {
+        const currentUser = JSON.parse(raw)
+        const updatedUser = { 
+          ...currentUser, 
+          ...payload,
+          // Сохраняем правильные имена полей
+          first_name: payload.first_name || payload.firstName || currentUser.first_name,
+          last_name: payload.last_name || payload.lastName || currentUser.last_name,
+          middle_name: payload.middle_name || payload.middleName || currentUser.middle_name,
         }
-      } catch (fallbackErr) {
-        console.error('profileApi.updateProfile fallback error', fallbackErr)
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+        console.log('profileApi.updateProfile: профиль обновлен в localStorage', updatedUser)
+        return { user: updatedUser }
       }
+      throw new Error('Данные пользователя не найдены в localStorage')
+    } catch (err) {
+      console.error('profileApi.updateProfile: ошибка обновления профиля', err)
       throw err
     }
   },
 
-  // Получить пользователя по id (для справочника)
-  async getUserById(id) {
+  // Получить пользователя по id - используем данные из загруженного списка
+  async getUserById(id, usersList = null) {
     try {
-      const res = await apiClient.get(`/users/${id}`)
-      return res.data
+      // Если передан список пользователей, ищем в нем
+      if (usersList && Array.isArray(usersList)) {
+        const foundUser = usersList.find(u => u.id === parseInt(id))
+        if (foundUser) {
+          console.log('profileApi.getUserById: пользователь найден в переданном списке', foundUser)
+          return { user: foundUser }
+        }
+      }
+      
+      // Если список не передан или пользователь не найден, пробуем получить из localStorage
+      const raw = localStorage.getItem('user')
+      if (raw) {
+        const localUser = JSON.parse(raw)
+        if (parseInt(localUser.id) === parseInt(id)) {
+          console.log('profileApi.getUserById: пользователь найден в localStorage', localUser)
+          return { user: localUser }
+        }
+      }
+      
+      // Если ничего не найдено, возвращаем ошибку
+      throw new Error(`Пользователь с id ${id} не найден`)
     } catch (err) {
-      console.warn('profileApi.getUserById: network error, falling back to localStorage or stub', err)
-      // fallback: return current local user if ids match; otherwise minimal stub
-      try {
-        const raw = localStorage.getItem('user')
-        if (raw) {
-          const localUser = JSON.parse(raw)
-          if (+localUser.id === +id) return { user: localUser }
-        }
-      } catch (e) {
-        console.error('profileApi.getUserById fallback parse error', e)
-      }
-      // minimal offline stub
-      return {
-        user: {
-          id,
-          firstName: 'Имя',
-          lastName: 'Фамилия',
-          middleName: '',
-          email: 'user@example.com',
-          role: { id: null, name: 'Клиент' }
-        }
-      }
+      console.error(`profileApi.getUserById: ошибка получения пользователя ${id}`, err)
+      throw err
     }
   },
 
-  // Обновить пользователя по id (для админ-панели)
+  // Обновить пользователя по id
   async updateUserById(id, payload) {
     try {
-      const res = await apiClient.put(`/users/${id}`, payload)
-      return res.data
-    } catch (err) {
-      console.warn('profileApi.updateUserById: network error, falling back to localStorage', err)
-      try {
-        const raw = localStorage.getItem('user')
-        if (raw) {
-          const localUser = JSON.parse(raw)
-          if (+localUser.id === +id) {
-            const updated = { ...localUser, ...payload }
-            localStorage.setItem('user', JSON.stringify(updated))
-            return { user: updated }
+      // В реальном приложении здесь должен быть запрос к серверу
+      // Пока просто имитируем обновление в localStorage
+      const raw = localStorage.getItem('user')
+      if (raw) {
+        const localUser = JSON.parse(raw)
+        if (parseInt(localUser.id) === parseInt(id)) {
+          const updatedUser = { 
+            ...localUser, 
+            ...payload,
+            first_name: payload.first_name || payload.firstName || localUser.first_name,
+            last_name: payload.last_name || payload.lastName || localUser.last_name,
+            middle_name: payload.middle_name || payload.middleName || localUser.middle_name,
           }
+          localStorage.setItem('user', JSON.stringify(updatedUser))
+          console.log(`profileApi.updateUserById: пользователь ${id} обновлен в localStorage`, updatedUser)
+          return { user: updatedUser }
         }
-      } catch (e) {
-        console.error('profileApi.updateUserById fallback error', e)
       }
+      throw new Error(`Пользователь с id ${id} не найден в localStorage`)
+    } catch (err) {
+      console.error(`profileApi.updateUserById: ошибка обновления пользователя ${id}`, err)
       throw err
     }
   }

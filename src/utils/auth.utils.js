@@ -32,3 +32,33 @@ export const getUserRole = () => {
   }
   return userRole
 }
+
+export const roleConversion = (role) => {
+    switch (role) {
+      case 'Администратор':
+        return 'admin'
+      case 'Диспетчер':
+        return 'dispatcher'
+      case 'Инженер':
+        return 'engineer'
+      case 'Клиент':
+        return 'client'
+      default:
+        return null
+    }
+  }
+
+export const getRoleLabel = (role) => {
+    switch (role) {
+      case 'admin':
+        return 'Администратор'
+      case 'dispatcher':
+        return 'Диспетчер'
+      case 'engineer':
+        return 'Инженер'
+      case 'client':
+        return 'Клиент'
+      default:
+        return null
+    }
+  }

@@ -6,16 +6,23 @@
 -->
 
 <template>
+  
   <aside class="sidebar-menu" :class="{ open: !isCollapsed }">
+    <UIIcons ref="uiIcons" />
     <!-- Шапка сайдбара -->
     <div class="sidebar-header">
       <h1 class="logo">Help Desk</h1>
 
       <!-- Кнопка сворачивания/разворачивания в шапке -->
       <button class="collapse-btn" @click="toggleSidebar">
-        <span class="arrow-icon">
-          {{ isCollapsed ? '→' : '←' }}
-        </span>
+
+        <Icon 
+          :icon="uiIcons?.icons.arrowDoubleRight"
+          class="arrow-icon"
+          :class="{ rotated: !isCollapsed }"
+          width="40"
+          height="40"
+        />
       </button>
     </div>
 
@@ -26,17 +33,28 @@
         <!-- Заявки -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('tickets')">
-            <span class="nav-text">📋 Заявки</span>
-            <span class="arrow">{{ isOpen.tickets ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.tickets" width="22" height="22" class="nav-icon" />
+              Заявки
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              class="arrow-icon-small"
+              :class="{ rotated: !isOpen.tickets }"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.tickets" class="submenu">
             <li>
               <RouterLink to="/admin/tickets" class="nav-link">
+                <Icon :icon="uiIcons?.icons.allTickets" width="20" height="20" class="nav-icon-small" />
                 Все заявки
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/admin/tickets/create" class="nav-link">
+                <Icon :icon="uiIcons?.icons.createTicket" width="20" height="20" class="nav-icon-small" />
                 Создать заявку
               </RouterLink>
             </li>
@@ -46,20 +64,28 @@
         <!-- Справочники -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('directories')">
-            <span class="nav-text">📚 Справочники</span>
-            <span class="arrow">{{ isOpen.directories ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.directories" width="20" height="20" class="nav-icon" />
+              Справочники
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              :class="{ rotated: !isOpen.directories }"
+              class="arrow-icon-small"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.directories" class="submenu">
             <li>
-              <RouterLink
-                to="/admin/directories/companies"
-                class="nav-link"
-              >
-                Компании
+              <RouterLink to="/admin/directories/companies" class="nav-link">
+                <Icon :icon="uiIcons?.icons.companies" width="20" height="20" class="nav-icon-small" />
+                Организации
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/admin/directories/users" class="nav-link">
+                <Icon :icon="uiIcons?.icons.users" width="20" height="20" class="nav-icon-small" />
                 Пользователи
               </RouterLink>
             </li>
@@ -69,17 +95,28 @@
         <!-- Аналитика -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('analytics')">
-            <span class="nav-text">📊 Аналитика</span>
-            <span class="arrow">{{ isOpen.analytics ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.analytics" width="22" height="22" class="nav-icon" />
+              Аналитика
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              :class="{ rotated: !isOpen.analytics }"
+              class="arrow-icon-small"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.analytics" class="submenu">
             <li>
               <RouterLink to="/admin/analytics/general" class="nav-link">
+                <Icon :icon="uiIcons?.icons.generalAnalytics" width="20" height="20" class="nav-icon-small" />
                 Общая аналитика
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/admin/analytics/reports" class="nav-link">
+                <Icon :icon="uiIcons?.icons.reports" width="20" height="20" class="nav-icon-small" />
                 Отчеты
               </RouterLink>
             </li>
@@ -92,17 +129,28 @@
         <!-- Заявки -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('tickets')">
-            <span class="nav-text">📋 Заявки</span>
-            <span class="arrow">{{ isOpen.tickets ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.tickets" width="22" height="22" class="nav-icon" />
+              Заявки
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              class="arrow-icon-small"
+              :class="{ rotated: !isOpen.tickets }"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.tickets" class="submenu">
             <li>
               <RouterLink to="/dispatcher/tickets" class="nav-link">
+                <Icon :icon="uiIcons?.icons.allTickets" width="20" height="20" class="nav-icon-small" />
                 Все заявки
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/dispatcher/tickets/create" class="nav-link">
+                <Icon :icon="uiIcons?.icons.createTicket" width="20" height="20" class="nav-icon-small" />
                 Создать заявку
               </RouterLink>
             </li>
@@ -112,20 +160,28 @@
         <!-- Справочники -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('directories')">
-            <span class="nav-text">📚 Справочники</span>
-            <span class="arrow">{{ isOpen.directories ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.directories" width="22" height="22" class="nav-icon" />
+              Справочники
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              :class="{ rotated: !isOpen.directories }"
+              class="arrow-icon-small"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.directories" class="submenu">
             <li>
-              <RouterLink
-                to="/dispatcher/directories/companies"
-                class="nav-link"
-              >
-                Компании
+              <RouterLink to="/dispatcher/directories/companies" class="nav-link">
+                <Icon :icon="uiIcons?.icons.companies" width="20" height="20" class="nav-icon-small" />
+                Организации
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/dispatcher/directories/users" class="nav-link">
+                <Icon :icon="uiIcons?.icons.users" width="20" height="20" class="nav-icon-small" />
                 Пользователи
               </RouterLink>
             </li>
@@ -135,17 +191,28 @@
         <!-- Аналитика -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('analytics')">
-            <span class="nav-text">📊 Аналитика</span>
-            <span class="arrow">{{ isOpen.analytics ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.analytics" width="22" height="22" class="nav-icon" />
+              Аналитика
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              :class="{ rotated: !isOpen.analytics }"
+              class="arrow-icon-small"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.analytics" class="submenu">
             <li>
               <RouterLink to="/dispatcher/analytics/general" class="nav-link">
+                <Icon :icon="uiIcons?.icons.generalAnalytics" width="20" height="20" class="nav-icon-small" />
                 Общая аналитика
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/dispatcher/analytics/reports" class="nav-link">
+                <Icon :icon="uiIcons?.icons.reports" width="20" height="20" class="nav-icon-small" />
                 Отчеты
               </RouterLink>
             </li>
@@ -158,17 +225,28 @@
         <!-- Заявки -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('tickets')">
-            <span class="nav-text">📋 Заявки</span>
-            <span class="arrow">{{ isOpen.tickets ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.tickets" width="22" height="22" class="nav-icon" />
+              Заявки
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              :class="{ rotated: !isOpen.tickets }"
+              class="arrow-icon-small"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.tickets" class="submenu">
             <li>
               <RouterLink to="/client/tickets" class="nav-link">
+                <Icon :icon="uiIcons?.icons.allTickets" width="20" height="20" class="nav-icon-small" />
                 Мои заявки
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/client/tickets/create" class="nav-link">
+                <Icon :icon="uiIcons?.icons.createTicket" width="20" height="20" class="nav-icon-small" />
                 Создать заявку
               </RouterLink>
             </li>
@@ -178,17 +256,28 @@
         <!-- Аналитика -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('analytics')">
-            <span class="nav-text">📊 Аналитика</span>
-            <span class="arrow">{{ isOpen.analytics ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.analytics" width="18" height="18" class="nav-icon" />
+              Аналитика
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              :class="{ rotated: !isOpen.analytics }"
+              class="arrow-icon-small"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.analytics" class="submenu">
             <li>
               <RouterLink to="/client/analytics/general" class="nav-link">
+                <Icon :icon="uiIcons?.icons.generalAnalytics" width="20" height="20" class="nav-icon-small" />
                 Общая аналитика
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/client/analytics/reports" class="nav-link">
+                <Icon :icon="uiIcons?.icons.reports" width="20" height="20" class="nav-icon-small" />
                 Отчеты
               </RouterLink>
             </li>
@@ -201,12 +290,22 @@
         <!-- Заявки -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('tickets')">
-            <span class="nav-text">📋 Заявки</span>
-            <span class="arrow">{{ isOpen.tickets ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.tickets" width="22" height="22" class="nav-icon" />
+              Заявки
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              :class="{ rotated: !isOpen.tickets }"
+              class="arrow-icon-small"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.tickets" class="submenu">
             <li>
               <RouterLink to="/engineer/tickets" class="nav-link">
+                <Icon :icon="uiIcons?.icons.allTickets" width="20" height="20" class="nav-icon-small" />
                 Мои заявки
               </RouterLink>
             </li>
@@ -216,12 +315,22 @@
         <!-- Календарь -->
         <li class="nav-item">
           <div class="nav-section" @click="toggleSection('calendar')">
-            <span class="nav-text">📊 Расписание </span>
-            <span class="arrow">{{ isOpen.analytics ? '▲' : '▼' }}</span>
+            <span class="nav-text">
+              <Icon :icon="uiIcons?.icons.calendar" width="22" height="22" class="nav-icon" />
+              Расписание
+            </span>
+            <Icon 
+              :icon="uiIcons?.icons.arrowUp"
+              :class="{ rotated: !isOpen.calendar }"
+              class="arrow-icon-small"
+              width="28"
+              height="28"
+            />
           </div>
           <ul v-if="isOpen.calendar" class="submenu">
             <li>
               <RouterLink to="/engineer/calendar" class="nav-link">
+                <Icon :icon="uiIcons?.icons.calendar" width="20" height="20" class="nav-icon-small" />
                 Календарь работ
               </RouterLink>
             </li>
@@ -239,7 +348,10 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getUserRole } from '@/utils/auth.utils'
+import { Icon } from '@iconify/vue'
+import UIIcons from '@/components/common/UI/UIIcons.vue'
 
+const uiIcons = ref()
 const userRole = getUserRole()
 
 const isOpen = ref({})
@@ -360,7 +472,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 55px;
+  min-height: 54px;
   background: #031432;
   z-index: 1002;
 }
@@ -373,11 +485,10 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-/* Кнопка сворачивания/разворачивания в шапке */
 .collapse-btn {
-  width: 35px;
-  height: 35px;
-  background: #16bd00;
+  width: 42px;
+  height: 42px;
+  background:#031432;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -388,23 +499,26 @@ onUnmounted(() => {
 }
 
 .collapse-btn:hover {
-  background: #14a800;
+  background: #16bd0065;
   transform: scale(1.05);
 }
 
 .arrow-icon {
-  font-size: 20px;
-  font-weight: 900;
-  color: white;
+  color: #16bd00;
+  transition: all 0.3s ease;
+}
+
+.arrow-icon.rotated {
+  transform: rotate(180deg);
 }
 
 /* Навигационная часть */
 .sidebar-nav {
   position: fixed;
   left: 0;
-  top: 55px;
+  top: 54px;
   width: 250px;
-  height: calc(100vh - 55px);
+  height: calc(100vh - 54px);
   background: #031432;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
@@ -443,17 +557,27 @@ onUnmounted(() => {
 
 .nav-text {
   flex: 1;
+  display: flex;
+  align-items: center; /* Центрируем содержимое по вертикали */
+  gap: 10px; /* Расстояние между иконкой и текстом */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1; /* Убираем лишние отступы от line-height */
 }
 
-.arrow {
-  font-size: 12px;
+.arrow-icon-small {
   color: #16bd00;
   margin-left: 8px;
   flex-shrink: 0;
+  display: inline-block;
+  transition: transform 0.3s ease;
 }
+
+.arrow-icon-small.rotated {
+  transform: rotate(180deg);
+}
+
 
 /* Подменю */
 .submenu {
@@ -480,7 +604,9 @@ onUnmounted(() => {
 }
 
 .nav-link {
-  display: block;
+  align-items: center; /* Центрируем содержимое по вертикали */
+  gap: 10px; /* Расстояние между иконкой и текстом */
+  display: flex;
   margin-left: 30px;
   padding: 5px 20px 5px 30px;
   color: #ffffff;
@@ -497,6 +623,7 @@ onUnmounted(() => {
 .nav-link.router-link-active {
   color: #000000;
   background: #e4e4e4;
+  padding: 5px 10px 5px 20px;
   border-left: 8px solid #16bd00;
 }
 

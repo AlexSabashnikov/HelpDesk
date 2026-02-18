@@ -8,6 +8,7 @@
 <template>
   <div class="ticket-table-wrapper">
     <!-- Общий компонент таблицы -->
+    <UIIcons ref="uiIcons" />
     <UITable
       :columns="columns"
       :data="formattedTickets"
@@ -66,7 +67,11 @@
       <!-- Кастомный слот для колонки "Редактирование" -->
       <template #cell-edit="{ row }">
         <button class="edit-btn" @click.stop="handleEdit(row)" title="Редактировать заявку">
-          ✏️
+          <Icon 
+            :icon="uiIcons?.icons.ticketEdit"
+            width="20"
+            height="20"
+          />
         </button>
       </template>
 
@@ -111,6 +116,10 @@ import {
   getStatusLabel,
   formatTicketsForTable
 } from '@/utils/ticket.utils'
+import { Icon } from '@iconify/vue'
+import UIIcons from '@/components/common/UI/UIIcons.vue'
+
+const uiIcons = ref()
 
 const props = defineProps({
   tickets: {
@@ -168,7 +177,7 @@ const currentMode = ref('view') // 'view' или 'edit'
 // Обработчик редактирования из кнопки в таблице
 const handleEdit = (row) => {
   // Проверяем, имеет ли пользователь права администратора
-  if (userRole === 'admin') {
+  if (userRole === 'admin' || userRole === 'dispatcher') {
     selectedTicket.value = {
       ...row,
       type: row.type,
@@ -362,7 +371,7 @@ const handlePageChange = (page) => {
 .edit-btn {
   width: 28px;
   height: 28px;
-  background: #f3f4f6;
+  background: #ffee6d;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   cursor: pointer;
@@ -375,7 +384,7 @@ const handlePageChange = (page) => {
 }
 
 .edit-btn:hover {
-  background: #c9dbff;
+  background: #f1da2b;
   border-color: #9ca3af;
   transform: scale(1.05);
 }

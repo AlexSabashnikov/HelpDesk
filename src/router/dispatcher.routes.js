@@ -72,7 +72,7 @@ const dispatcherRoutes = [
   },
   {
     path: '/dispatcher',
-    redirect: '/admin/tickets',
+    redirect: '/dispatcher/tickets',
   },
 ]
 

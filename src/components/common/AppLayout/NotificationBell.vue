@@ -6,9 +6,10 @@
 -->
 
 <template>
+  <UIIcons ref="uiIcons" />
   <div class="notification-bell" @click="toggleNotifications">
     <div class="bell-icon">
-      🔔
+      <Icon :icon="uiIcons?.icons.notificationsBell" class="bell" width="25" height="25"/>
       <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
     </div>
 
@@ -34,7 +35,11 @@
 
 <script setup>
 import { ref } from 'vue'
+import { Icon } from '@iconify/vue'
+import UIIcons from '@/components/common/UI/UIIcons.vue'
 
+
+const uiIcons = ref()
 const showNotifications = ref(false)
 const unreadCount = ref(3)
 
@@ -77,9 +82,12 @@ const markAllAsRead = () => {
 }
 
 .bell-icon {
-  font-size: 20px;
   position: relative;
   padding: 8px;
+}
+
+.bell{
+  color:#ffbb00;
 }
 
 .badge {

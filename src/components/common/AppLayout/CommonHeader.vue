@@ -11,10 +11,10 @@
         <span v-else>Панель</span>
       </div>
 
-      <!-- Навигационная цепочка -->
+      <!-- Навигационная цепочка 
       <div class="breadcrumbs">
         <slot name="breadcrumbs"></slot>
-      </div>
+      </div>-->
     </div>
 
     <!-- Правая часть: уведомления и профиль -->
@@ -25,11 +25,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useAuthStore } from '@/stores/auth.store'
+import { getUserRole } from '@/utils/auth.utils'
 
-const authStore = useAuthStore()
-const userRole = computed(() => authStore.userRole || null)
+const userRole = getUserRole()
 </script>
 
 <style scoped>
@@ -57,26 +55,16 @@ const userRole = computed(() => authStore.userRole || null)
   gap: 12px;
 }
 
-/* Убираем внешние отступы у внутренних блоков — это частая причина "прыжка" высоты */
-.interface-and-crumbs,
-.interface-and-crumbs > * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 /* Название интерфейса: ограничиваем высоту и выравниваем по центру */
 .name-of-interface {
-  display: block;
-  margin: 0;
-  padding: 0;
+  margin-bottom: 0px;
+  padding-left: 5%;
   font-size: 18px;
   font-weight: 500;
   color: #E5E4E2;
   line-height: var(--sidebar-header-height); /* гарантируем центровку текста */
   height: var(--sidebar-header-height);
   white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
 }
 
@@ -84,26 +72,10 @@ const userRole = computed(() => authStore.userRole || null)
 .breadcrumbs {
   margin: 0;
   padding: 0;
-  font-size: 13px;
-  color: #6d6d6d;
+  font-size: 12px;
+  color: #5a5a5a;
   line-height: 1;
-}
-
-/* Правая часть — сдерживаем высоту и используем flex */
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-right: 8px;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-/* Делаем так, чтобы элементы внутри header-right не увеличивали высоту (например, большие кнопки) */
-.header-right > * {
-  max-height: calc(var(--sidebar-header-height) - 8px);
-  display: inline-flex;
-  align-items: center;
+  cursor: pointer;
 }
 
 /* Мелкая адаптация при сжатии экрана */

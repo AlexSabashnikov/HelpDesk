@@ -11,7 +11,7 @@
     <div class="profile-info">
       <div class="user-details">
         <div class="user-name">{{ userNameDisplay }}</div>
-        <div class="user-role">{{ userRoleStr }}</div>
+        <div class="user-role">{{ getRoleLabel(userRoleStr) }}</div>
       </div>
       <div class="avatar" aria-hidden="true">
         {{ userInitials }}
@@ -23,11 +23,11 @@
 <script setup>
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
+import { getUserRole, getRoleLabel } from '@/utils/auth.utils'
 
 // Emit для открытия модалки (MainLayout слушает)
 const emit = defineEmits(['openProfile'])
 
-// Pinia — единый источник правды
 const authStore = useAuthStore()
 
 // Надёжный геттер user: сначала из store, затем fallback на localStorage (если нужно)
@@ -54,42 +54,20 @@ const userNameDisplay = computed(() => {
   const u = userData.value
   if (!u) return 'Пользователь'
   const last = u.lastName || u.last_name || ''
+  const middle = u.middleName || u.middle_name || u.middle || ''
   const first = u.firstName || u.first_name || u.first || ''
-  // Если оба есть — возвращаем "Фамилия И.О." или "Фамилия Имя" в зависимости от длины
-  if (last && first) {
-    const initial = (first || '').trim()[0] || ''
-    return initial ? `${last} ${initial}.` : `${last} ${first}`
+  // Если три есть — возвращаем "Фамилия И.О."
+  if (last && first && middle) {
+    let initialFirst = (first || '').trim()[0] || ''
+    let initialMiddle = (middle || '').trim()[0] || ''
+    return `${last} ${initialFirst}.${initialMiddle}`
   }
   // если нет фамилии/имени — попробуем более общие поля
   return u.name || u.login || u.email || 'Пользователь'
 })
 
 // Нормализация роли для отображения
-const userRoleStr = computed(() => {
-  const r = userData.value?.role
-  if (!r) return ''
-  // если роль — объект { name: 'Администратор' }
-  if (typeof r === 'object') return r.name || r.slug || ''
-  // если роль — строка slug
-  const slug = String(r).toLowerCase()
-  switch (slug) {
-    case 'admin':
-    case 'администратор':
-      return 'Администратор'
-    case 'dispatcher':
-    case 'диспетчер':
-      return 'Диспетчер'
-    case 'engineer':
-    case 'инженер':
-      return 'Инженер'
-    case 'client':
-    case 'клиент':
-      return 'Клиент'
-    default:
-      // Вернём original (например "Admin" или "Администратор")
-      return String(r)
-  }
-})
+const userRoleStr =  getUserRole()
 
 // Формирование инициалов (max 2 буквы)
 // Пример: "Иванов С." -> "ИС", "Пользователь" -> "П"
@@ -109,49 +87,59 @@ function handleClick() {
 
 <style scoped>
 .user-profile {
-  position: relative;
   cursor: pointer;
   outline: none;
 }
-.user-profile:focus .profile-info {
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-  border-radius: 8px;
-}
+
 .profile-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px;
-  border-radius: 8px;
-  width: 180px;
-  transition: background 0.12s ease;
+  gap: 8px;
+  padding: 4px 8px 4px 12px;
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+  background-color: #031432;;
 }
+
 .profile-info:hover {
-  background: rgba(0,85,255,0.08);
+  background-color: #299f1990;
 }
+
+.user-details {
+  text-align: right;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #ffffff;
+  line-height: 1.2;
+  white-space: nowrap;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 12px;
+  color: #bec9d7;
+  line-height: 1.2;
+  text-align: right;
+}
+
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #3141d4, #1ec907);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   color: white;
-  font-size: 14px;
-}
-.user-details {
-  text-align: left;
-  padding-left: 6px;
-}
-.user-name {
-  font-weight: 500;
-  font-size: 14px;
-  color: #E5E4E2;
-}
-.user-role {
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 13px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>

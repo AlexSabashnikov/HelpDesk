@@ -76,8 +76,14 @@
   <UIPagination 
     v-if="pagination && totalItems > 0 && totalItems > pageSize"
     :current-page="currentPage"
+    :last-page="lastPageComputed"
+    :per-page="pageSize"
     :total="totalItems"
-    :page-size="pageSize"
+    :from="fromComputed"
+    :to="toComputed"
+    :links="linksComputed"
+    :prev-page-url="prevPageUrlComputed"
+    :next-page-url="nextPageUrlComputed"
     :show-info="showPaginationInfo"
     :show-page-size-selector="showPageSizeSelector"
     :show-page-jump="showPageJump"
@@ -89,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch } from 'vue'
+import { ref, defineProps, defineEmits, watch, computed } from 'vue'
 import UIPagination from '@/components/common/UI/UIPagination.vue'
 
 const props = defineProps({
@@ -122,13 +128,14 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  // Пропсы для пагинации
   pagination: {
     type: Boolean,
     default: false,
   },
   pageSize: {
     type: Number,
-    default: 0,
+    default: 20,
   },
   currentPage: {
     type: Number,
@@ -158,6 +165,31 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  // Laravel pagination данные (передаются отдельными пропсами)
+  lastPage: {
+    type: Number,
+    default: 1
+  },
+  from: {
+    type: Number,
+    default: 0
+  },
+  to: {
+    type: Number,
+    default: 0
+  },
+  links: {
+    type: Array,
+    default: () => []
+  },
+  prevPageUrl: {
+    type: String,
+    default: null
+  },
+  nextPageUrl: {
+    type: String,
+    default: null
+  }
 })
 
 const emit = defineEmits(['rowClick', 'sortChange', 'pageChange'])
@@ -186,6 +218,31 @@ const handlePageChange = (page) => {
   localCurrentPage.value = page
   emit('pageChange', page)
 }
+
+// Вычисляемые свойства для Laravel pagination с правильными значениями по умолчанию
+const lastPageComputed = computed(() => {
+  return props.lastPage || Math.ceil(props.totalItems / props.pageSize) || 1
+})
+
+const fromComputed = computed(() => {
+  return props.from || ((props.currentPage - 1) * props.pageSize + 1)
+})
+
+const toComputed = computed(() => {
+  return props.to || Math.min(props.currentPage * props.pageSize, props.totalItems)
+})
+
+const linksComputed = computed(() => {
+  return props.links || []
+})
+
+const prevPageUrlComputed = computed(() => {
+  return props.prevPageUrl || null
+})
+
+const nextPageUrlComputed = computed(() => {
+  return props.nextPageUrl || null
+})
 
 watch(() => props.currentPage, (newPage) => {
   localCurrentPage.value = newPage

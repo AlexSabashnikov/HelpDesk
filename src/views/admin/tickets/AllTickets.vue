@@ -5,6 +5,7 @@
 -->
 
 <template>
+  <UIIcons ref="uiIcons" />
   <!-- Основной контент страницы -->
   <div class="all-tickets-page">
     <!-- Панель с кнопками над таблицей -->
@@ -18,7 +19,7 @@
           customClass="search-ui-input"
         />
         <button class="search-btn" @click="handleSearch">
-          🔍
+          <Icon :icon="uiIcons?.icons.ticketSearch" width="24" height="24" />
         </button>
       </div>
 
@@ -58,11 +59,15 @@
 import { ref, onMounted } from 'vue'
 import { useTicketsStore } from '@/stores/tickets.store'
 import TicketFilters from '@/components/tickets/TicketFilters.vue'
-import TicketTable from '@/components/tickets/TicketTable.vue'
+import TicketTable from '@/components/tables/TicketTable.vue'
 import UIButton from '@/components/common/UI/UIButton.vue'
 import UIInput from '@/components/common/UI/UIInput.vue'
 import { isDeadlineOverdue, isDeadlineApproaching, getDeadlineClass } from '@/utils/ticket.utils'
+import { Icon } from '@iconify/vue'
+import UIIcons from '@/components/common/UI/UIIcons.vue'
 
+
+const uiIcons = ref()
 const ticketsStore = useTicketsStore()
 const searchQuery = ref('')
 
@@ -263,11 +268,11 @@ onMounted(() => {
 }
 
 .search-btn {
-  background: #71bfff;
+  background: #319ef8;
   color: white;
   border: 1px solid #1296e8;
   border-radius: 0 20px 20px 0;
-  padding: 4px 10px;
+  padding: 1px 8px;
   cursor: pointer;
   font-size: 12px;
   margin-left: 4px;
@@ -278,7 +283,8 @@ onMounted(() => {
 }
 
 .search-btn:hover {
-  background: #339af0;
+  background: #299eff;
   border-color: #339af0;
+  transform: scale(1.05);
 }
 </style>

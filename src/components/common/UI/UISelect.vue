@@ -3,20 +3,20 @@
     Используется для выбора компаний, пользователей, статусов
 -->
 
-<!-- 
-    Выпадающий список с кастомным дизайном
-    Используется для выбора компаний, пользователей, статусов
--->
-
 <template>
-  <div class="ui-select-wrapper" :class="customClass" ref="wrapperRef">
-    <span class="ui-select-label">{{ label }}</span>
+  <div class="ui-select-wrapper" :class="[customClass, { 'required-field': required }]" ref="wrapperRef">
+    <span class="ui-select-label">
+      {{ label }}
+      <span v-if="required" class="required-asterisk">*</span>
+      <span v-if="showError" class="select-error">{{ errorMessage }}</span>
+    </span>
     <!-- Скрытый нативный select для браузерных функций -->
     <select
       :value="modelValue"
       @change="handleNativeChange"
       :class="['ui-select-native', customClass]"
       :placeholder="placeholder"
+      :required="required"
       style="display: none"
     >
       <option v-if="placeholder && !modelValue" value="" disabled selected>
@@ -31,7 +31,11 @@
     <div 
       class="ui-select-custom"
       :style="contentStyles"
-      :class="{ 'ui-select-open': showDropdown, 'has-placeholder': !modelValue && placeholder }"
+      :class="{ 
+        'ui-select-open': showDropdown, 
+        'has-placeholder': !modelValue && placeholder,
+        'has-error': showError 
+      }"
       @click="toggleDropdown"
     >
       <span class="ui-select-value" :style="textStyles">
@@ -63,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 
 const props = defineProps({
   modelValue: [String, Number],
@@ -96,19 +100,84 @@ const props = defineProps({
     type: String,
     default: null
   },
+  required: {
+    type: Boolean,
+    default: false
+  },
+  // Кастомные правила валидации
+  rules: {
+    type: Array,
+    default: () => []
+  },
+  // Кастомное сообщение для required
+  requiredMessage: {
+    type: String,
+    default: 'Обязательное поле'
+  },
+  // Показывать ошибку сразу или после потери фокуса
+  validateOnBlur: {
+    type: Boolean,
+    default: true
+  }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'blur', 'valid', 'error'])
 
 const wrapperRef = ref(null)
 const dropdownRef = ref(null)
 const showDropdown = ref(false)
+const isTouched = ref(false) // По умолчанию false
+const internalError = ref('')
+
+// Валидация поля
+const validate = () => {
+  const value = props.modelValue
+  
+  // Проверка required
+  if (props.required) {
+    if (value === null || value === undefined || value === '') {
+      return props.requiredMessage
+    }
+  }
+  
+  // Кастомные правила
+  for (const rule of props.rules) {
+    if (typeof rule === 'function') {
+      const result = rule(value)
+      if (typeof result === 'string') {
+        return result
+      }
+    } else if (rule && rule.validator && rule.message) {
+      if (!rule.validator(value)) {
+        return rule.message
+      }
+    }
+  }
+  
+  return ''
+}
+
+// Обновляем ошибку при изменении значения, но только если поле уже тронуто
+watch(() => props.modelValue, () => {
+  if (isTouched.value) {
+    internalError.value = validate()
+    emit('valid', !internalError.value)
+    emit('error', internalError.value)
+  }
+})
+
+// Показываем ошибку только если поле тронуто и есть ошибка
+const showError = computed(() => {
+  return isTouched.value && internalError.value
+})
+
+const errorMessage = computed(() => internalError.value)
 
 // Получаем выбранную метку
 const selectedLabel = computed(() => {
-  if (!props.modelValue) return ''
+  if (!props.modelValue && props.modelValue !== 0) return ''
   const option = props.options.find(opt => opt.value === props.modelValue)
-  return option ? option.label : props.modelValue
+  return option ? option.label : ''
 })
 
 const contentStyles = computed(() => {
@@ -137,24 +206,74 @@ const isOptionSelected = (option) => {
 
 // Переключение выпадающего списка
 const toggleDropdown = () => {
-  showDropdown.value = !showDropdown.value
+  if (!props.disabled) {
+    showDropdown.value = !showDropdown.value
+    // При открытии dropdown не помечаем поле как тронутое
+  }
 }
 
 // Выбор опции
 const selectOption = (option) => {
   emit('update:modelValue', option.value)
   showDropdown.value = false
+  // Помечаем как тронутое только при выборе опции
+  if (!isTouched.value) {
+    isTouched.value = true
+  }
+  internalError.value = validate()
+  emit('valid', !internalError.value)
+  emit('error', internalError.value)
 }
 
 // Обработчик нативного select
 const handleNativeChange = (event) => {
   emit('update:modelValue', event.target.value)
+  // Помечаем как тронутое только при изменении
+  if (!isTouched.value) {
+    isTouched.value = true
+  }
+  internalError.value = validate()
+  emit('valid', !internalError.value)
+  emit('error', internalError.value)
+}
+
+// Метод для принудительной валидации
+const validateField = () => {
+  isTouched.value = true
+  internalError.value = validate()
+  emit('valid', !internalError.value)
+  emit('error', internalError.value)
+  return !internalError.value
+}
+
+// Метод для сброса ошибки
+const clearError = () => {
+  internalError.value = ''
+  isTouched.value = false
+  emit('error', '')
+}
+
+// Метод для установки внешней ошибки
+const setError = (message) => {
+  isTouched.value = true
+  internalError.value = message
+  emit('error', message)
 }
 
 // Закрытие при клике вне компонента
 const handleClickOutside = (event) => {
   if (wrapperRef.value && !wrapperRef.value.contains(event.target)) {
-    showDropdown.value = false
+    if (showDropdown.value) {
+      showDropdown.value = false
+      // Помечаем как тронутое только если был открыт dropdown и закрыт без выбора
+      if (!isTouched.value) {
+        isTouched.value = true
+      }
+      internalError.value = validate()
+      emit('blur')
+      emit('valid', !internalError.value)
+      emit('error', internalError.value)
+    }
   }
 }
 
@@ -164,6 +283,13 @@ const handleKeyDown = (event) => {
   
   if (event.key === 'Escape') {
     showDropdown.value = false
+    // Помечаем как тронутое при закрытии по Escape
+    if (!isTouched.value) {
+      isTouched.value = true
+    }
+    internalError.value = validate()
+    emit('valid', !internalError.value)
+    emit('error', internalError.value)
   }
 }
 
@@ -177,12 +303,25 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleKeyDown)
 })
+
+// Экспортируем методы
+defineExpose({
+  validate: validateField,
+  clearError,
+  setError,
+  isValid: computed(() => !internalError.value)
+})
 </script>
 
 <style scoped>
 .ui-select-wrapper {
   position: relative;
   width: 100%;
+}
+
+.required-asterisk {
+  color: #b00020;
+  margin-left: 2px;
 }
 
 /* Кастомный инпут */
@@ -204,6 +343,11 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
+.ui-select-custom.has-error {
+  border-color: #b00020;
+  background-color: #fff5f5;
+}
+
 .ui-select-custom:hover {
   border-color: #3b82f6;
 }
@@ -216,6 +360,11 @@ onBeforeUnmount(() => {
 .ui-select-custom.ui-select-open {
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.ui-select-custom.has-error.ui-select-open {
+  border-color: #b00020;
+  box-shadow: 0 0 0 2px rgba(176, 0, 32, 0.1);
 }
 
 .ui-select-value {
@@ -255,6 +404,8 @@ onBeforeUnmount(() => {
   z-index: 10;
   margin-top: 2px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(89, 89, 89) rgba(0, 0, 0, 0);
   animation: fadeIn 0.2s ease;
 }
 
@@ -290,6 +441,14 @@ onBeforeUnmount(() => {
 
 .ui-select-option:not(:last-child) {
   border-bottom: 1px solid #f3f4f6;
+}
+
+/* Ошибка */
+.select-error {
+  font-size: 11px;
+  color: #b00020;
+  margin-top: 4px;
+  padding-left: 4px;
 }
 
 /* Нативный select (скрыт) */

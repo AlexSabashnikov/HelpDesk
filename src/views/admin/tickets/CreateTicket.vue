@@ -50,7 +50,7 @@
 import { defineProps, defineEmits, ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { getUserRole } from '@/utils/auth.utils'
-import apiClient from '@/api/axios.config'
+import globalApiClient from '@/api/axios.config'
 import RequiredBlock from '@/components/tickets/TicketCreateBlocks/RequiredBlock.vue'
 import AdditionalBlock from '@/components/tickets/TicketCreateBlocks/AdditionalBlock.vue'
 import { prepareTicketForSubmit } from '@/utils/form.utils'
@@ -410,7 +410,7 @@ const saveChanges = async () => {
     })
     
     // Отправка на сервер
-    const response = await apiClient.post('/api/tickets', ticketData)
+    const response = await globalApiClient.post('/api/tickets', ticketData)
     
     if (response.data && response.data.success) {
       // Успешное сохранение

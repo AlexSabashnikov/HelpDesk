@@ -1,4 +1,3 @@
-
 /**
  * Обработчик сессий для отслеживания AJAX запросов
  * Реагирует на 419 (CSRF) и 401 (токен) ошибки
@@ -273,6 +272,7 @@ class SessionHandler {
     // Если запрос был через globalApiClient, используем его
     // Проверяем по baseURL или другим признакам
     if (config.baseURL === globalApiClient.defaults.baseURL) {
+      console.log('base URL globalApiClient')
       return globalApiClient
     }
     

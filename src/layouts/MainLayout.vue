@@ -1,4 +1,9 @@
-<!-- src/layouts/MainLayout.vue -->
+<!-- 
+    Макет панели администратора
+    Боковое меню с полным доступом ко всем разделам
+    Шапка с навигационной цепочкой и профилем
+-->
+
 <template>
   <div class="admin-layout">
     <!-- Боковое меню -->
@@ -8,16 +13,15 @@
     <div class="main-content" :class="{ 'sidebar-hidden': !sidebarVisible }">
       <!-- Шапка -->
       <Header class="header">
-        <template #breadcrumbs>
+        <!-- <template #breadcrumbs>
           <slot name="breadcrumbs">
             <Breadcrumbs />
           </slot>
-        </template>
+        </template>-->
 
         <template #actions>
           <div class="header-actions">
             <NotificationBell />
-            <!-- Подписываемся на openProfile -->
             <UserProfile @openProfile="openProfile" />
           </div>
         </template>
@@ -39,10 +43,10 @@
 import { ref } from 'vue';
 import SidebarMenu from '@/components/common/AppLayout/SidebarMenu.vue'
 import Header from '@/components/common/AppLayout/CommonHeader.vue'
-import Breadcrumbs from '@/components/common/AppLayout/BreadCrumbs.vue'
+//import Breadcrumbs from '@/components/common/AppLayout/BreadCrumbs.vue'
 import NotificationBell from '@/components/common/AppLayout/NotificationBell.vue'
 import UserProfile from '@/components/common/UI/UIProfile.vue'
-import UserProfileModal from '@/components/common/UI/UserProfileModal.vue'
+import UserProfileModal from '@/components/modal/UserProfileModal.vue'
 
 const sidebarVisible = ref(true);
 

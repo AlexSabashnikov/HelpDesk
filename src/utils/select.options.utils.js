@@ -76,16 +76,25 @@ export const CLIENT_OPTIONS = [
  * Опции для офисов/локаций
  */
 export const OFFICE_OPTIONS = [
-  { id: 1, name: 'Офис на Тверской', address: 'Москва, ул. Тверская, 10' },
-  { id: 2, name: 'Офис на Арбате', address: 'Москва, ул. Арбат, 25' },
-  { id: 3, name: 'Офис в Санкт-Петербурге', address: 'СПб, Невский пр., 50' },
+  { id: 1, name: 'Главный офис', address: 'Москва, ул. Тверская, 10' },
+  { id: 2, name: 'Офис №15', address: 'Москва, ул. Арбат, 25' },
+  { id: 3, name: 'Офис №3', address: 'СПб, Невский пр., 50' },
+]
+
+/**
+ * Опции для ролей
+ */
+export const USERS_ROLES_OPTIONS = [
+  { value: 1, label: 'Администратор' },
+  { value: 2, label: 'Диспетчер' },
+  { value: 3, label: 'Инженер' },
+  { value: 4, label: 'Клиент' }
 ]
 
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
 
 /**
  * Получает опции для типов заявок
- * @param {boolean} includeEmpty - Включать пустую опцию
  * @returns {Array} Массив опций
  */
 export const getTicketTypeOptions = () => {
@@ -95,7 +104,6 @@ export const getTicketTypeOptions = () => {
 
 /**
  * Получает опции для приоритетов
- * @param {boolean} includeEmpty - Включать пустую опцию
  * @returns {Array} Массив опций
  */
 export const getTicketPriorityOptions = () => {
@@ -105,7 +113,6 @@ export const getTicketPriorityOptions = () => {
 
 /**
  * Получает опции для статусов
- * @param {boolean} includeEmpty - Включать пустую опцию
  * @returns {Array} Массив опций
  */
 export const getTicketStatusOptions = () => {
@@ -128,7 +135,6 @@ export const getExecutorOptions = (includeEmpty = true) => {
 
 /**
  * Получает опции для клиентов
- * @param {boolean} includeEmpty - Включать пустую опцию
  * @returns {Array} Массив опций
  */
 export const getClientOptions = () => {
@@ -138,14 +144,19 @@ export const getClientOptions = () => {
 
 /**
  * Получает опции для офисов
- * @param {boolean} includeEmpty - Включать пустую опцию
  * @returns {Array} Массив опций
  */
-export const getOfficeOptions = (includeEmpty = true) => {
+export const getOfficeOptions = () => {
   const options = [...OFFICE_OPTIONS]
-  if (includeEmpty) {
-    options.unshift({ id: null, name: 'Не выбран', address: '' })
-  }
+  return options
+}
+
+/**
+ * Получает опции ролей
+ * @returns {Array} Массив опций
+ */
+export const getRolesOptions = () => {
+  const options = [...USERS_ROLES_OPTIONS ]
   return options
 }
 

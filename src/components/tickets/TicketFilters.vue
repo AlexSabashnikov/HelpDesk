@@ -6,9 +6,10 @@
 -->
 
 <template>
+  <UIIcons ref="uiIcons" />
   <!-- Кнопка открытия фильтров -->
   <button class="filter-toggle-btn" @click="toggleFilters">
-    <span class="filter-icon">🔍</span>
+    <Icon :icon="uiIcons?.icons.filter" class="filter-icon" width="25" height="25" />
     <span>Фильтры</span>
   </button>
 
@@ -109,6 +110,11 @@ import { ref, watch } from 'vue'
 import UIInput from '@/components/common/UI/UIInput.vue'
 import UISelect from '@/components/common/UI/UISelect.vue'
 import UIButton from '@/components/common/UI/UIButton.vue'
+import { Icon } from '@iconify/vue'
+import UIIcons from '@/components/common/UI/UIIcons.vue'
+
+
+const uiIcons = ref()
 
 const props = defineProps({
   filters: Object,
@@ -223,7 +229,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 2px 20px;
+  padding: 2px 10px;
   background: #ffffff;
   border: 1px solid #c3c3c3;
   border-radius: 6px;
@@ -244,7 +250,7 @@ onUnmounted(() => {
 }
 
 .filter-icon {
-  font-size: 16px;
+  color:#0056e9;
 }
 
 /* Боковая панель фильтров */

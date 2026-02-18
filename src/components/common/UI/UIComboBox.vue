@@ -1,6 +1,11 @@
 <template>
-  <div class="ui-combobox-wrapper" :class="customClass">
-    <span class="ui-combobox-label">{{ label }}</span>
+  <div class="ui-combobox-wrapper" :class="[customClass, { 'required-field': required }]">
+    <span class="ui-combobox-label">
+      {{ label }}
+      <span v-if="required" class="required-asterisk">*</span>
+      <span v-if="showError" class="combobox-error">{{ errorMessage }}</span>
+    </span>
+    <div class="combobox-container" :class="{ 'has-error': showError }">
     <input
       ref="inputRef"
       :value="searchValue"
@@ -8,9 +13,11 @@
       @focus="showDropdown = true"
       @blur="handleBlur"
       :placeholder="placeholder"
+      :required="required"
+      :maxlength="maxLength"
       class="ui-combobox-input"
     />
-    
+    </div>
     <!-- Выпадающий список -->
     <div 
       v-if="showDropdown && filteredOptions.length > 0" 
@@ -49,6 +56,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  maxLength: {  
+    type: [Number, String],
+    default: null
+  },
   placeholder: {
     type: String,
     default: 'Выберите или введите...'
@@ -65,18 +76,86 @@ const props = defineProps({
     type: String,
     default: 'id'
   },
+  required: {
+    type: Boolean,
+    default: false
+  },
   dropdownMaxHeight: {
     type: String,
     default: '200px'
   },
-  customClass: String
+  customClass: String,
+  // Кастомные правила валидации
+  rules: {
+    type: Array,
+    default: () => []
+  },
+  // Кастомное сообщение для required
+  requiredMessage: {
+    type: String,
+    default: 'Обязательное поле'
+  },
+  // Показывать ошибку сразу или после потери фокуса
+  validateOnBlur: {
+    type: Boolean,
+    default: true
+  }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'blur', 'valid', 'error'])
 
 const inputRef = ref(null)
 const searchValue = ref('')
 const showDropdown = ref(false)
+const isTouched = ref(false)
+const internalError = ref('')
+
+// Валидация поля
+const validate = () => {
+  const value = props.modelValue
+  
+  // Проверка required
+  if (props.required) {
+    if (value === null || value === undefined || value === '') {
+      return props.requiredMessage
+    }
+    
+    if (typeof value === 'string' && !value.trim()) {
+      return props.requiredMessage
+    }
+  }
+  
+  // Кастомные правила
+  for (const rule of props.rules) {
+    if (typeof rule === 'function') {
+      const result = rule(value)
+      if (typeof result === 'string') {
+        return result
+      }
+    } else if (rule && rule.validator && rule.message) {
+      if (!rule.validator(value)) {
+        return rule.message
+      }
+    }
+  }
+  
+  return ''
+}
+
+// Обновляем ошибку при изменении значения
+watch(() => props.modelValue, () => {
+  if (isTouched.value) {
+    internalError.value = validate()
+    emit('valid', !internalError.value)
+    emit('error', internalError.value)
+  }
+})
+
+const showError = computed(() => {
+  return (isTouched.value || !props.validateOnBlur) && internalError.value
+})
+
+const errorMessage = computed(() => internalError.value)
 
 // Получение значения опции
 const getOptionValue = (option) => {
@@ -85,7 +164,7 @@ const getOptionValue = (option) => {
 
 // Получение метки опции
 const getOptionLabel = (option) => {
-  return typeof option === 'object' ? option[props.optionLabel] : option
+  return typeof option === 'object' ? option[props.optionLabel] : String(option)
 }
 
 // Проверка, выбрана ли опция
@@ -119,12 +198,15 @@ const handleInput = (event) => {
 
 // Обработчик выбора опции
 const selectOption = (option) => {
-  //const optionValue = getOptionValue(option)
   const optionLabel = getOptionLabel(option)
   
   searchValue.value = optionLabel
   emit('update:modelValue', option)
   showDropdown.value = false
+  isTouched.value = true
+  internalError.value = validate()
+  emit('valid', !internalError.value)
+  emit('error', internalError.value)
   
   // Фокус на инпуте после выбора
   nextTick(() => {
@@ -138,9 +220,10 @@ const selectOption = (option) => {
 const handleBlur = () => {
   setTimeout(() => {
     showDropdown.value = false
+    isTouched.value = true
     
     // Проверяем, соответствует ли введенный текст какой-либо опции
-    if (searchValue.value) {
+    if (searchValue.value && props.options.length > 0) {
       const matchingOption = props.options.find(option => 
         getOptionLabel(option).toLowerCase() === searchValue.value.toLowerCase()
       )
@@ -151,7 +234,35 @@ const handleBlur = () => {
         emit('update:modelValue', null)
       }
     }
+    
+    internalError.value = validate()
+    emit('blur')
+    emit('valid', !internalError.value)
+    emit('error', internalError.value)
   }, 200)
+}
+
+// Метод для принудительной валидации
+const validateField = () => {
+  isTouched.value = true
+  internalError.value = validate()
+  emit('valid', !internalError.value)
+  emit('error', internalError.value)
+  return !internalError.value
+}
+
+// Метод для сброса ошибки
+const clearError = () => {
+  internalError.value = ''
+  isTouched.value = false
+  emit('error', '')
+}
+
+// Метод для установки внешней ошибки
+const setError = (message) => {
+  isTouched.value = true
+  internalError.value = message
+  emit('error', message)
 }
 
 // Синхронизация modelValue с searchValue
@@ -161,7 +272,7 @@ watch(() => props.modelValue, (newValue) => {
       searchValue.value = getOptionLabel(newValue)
     } else {
       const option = props.options.find(opt => getOptionValue(opt) === newValue)
-      searchValue.value = option ? getOptionLabel(option) : newValue
+      searchValue.value = option ? getOptionLabel(option) : String(newValue)
     }
   } else {
     searchValue.value = ''
@@ -179,12 +290,17 @@ const focus = () => {
 const clear = () => {
   searchValue.value = ''
   emit('update:modelValue', null)
+  clearError()
 }
 
 // Экспортируем методы
 defineExpose({
   focus,
-  clear
+  clear,
+  validate: validateField,
+  clearError,
+  setError,
+  isValid: computed(() => !internalError.value)
 })
 </script>
 
@@ -192,6 +308,16 @@ defineExpose({
 .ui-combobox-wrapper {
   position: relative;
   width: 100%;
+}
+
+.combobox-container {
+  position: relative;
+  width: 100%;
+}
+
+.combobox-container.has-error .ui-combobox-input {
+  border-color: #b00020;
+  background-color: #fff5f5;
 }
 
 .ui-combobox-input {
@@ -212,6 +338,12 @@ defineExpose({
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
+.combobox-container.has-error .ui-combobox-input:focus {
+  border-color: #b00020;
+  box-shadow: 0 0 0 2px rgba(176, 0, 32, 0.1);
+}
+
+
 .ui-combobox-input::placeholder {
   color: #9a9a9a;
     font-style: italic;
@@ -221,6 +353,11 @@ defineExpose({
   font-size: 12px;
   color: #8c8c8c;
   font-weight: 500;
+}
+
+.required-asterisk {
+  color: #b00020;
+  margin-left: 2px;
 }
 
 /* Выпадающий список */
@@ -271,5 +408,13 @@ defineExpose({
 
 .combobox-no-results-text {
   font-style: italic;
+}
+
+/* Ошибка */
+.combobox-error {
+  font-size: 11px;
+  color: #b00020;
+  margin-top: 4px;
+  padding-left: 4px;
 }
 </style>
