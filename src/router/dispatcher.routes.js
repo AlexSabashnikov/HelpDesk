@@ -33,7 +33,7 @@ const dispatcherRoutes = [
   {
     path: '/dispatcher/directories/companies',
     name: 'dispatcher-companies',
-    component: () => import('@/views/admin/directories/DCompanies.vue'),
+    component: () => import('@/views/admin/directories/DOrganizations.vue'),
     meta: {
       title: 'Компании',
       requiresAuth: true,

@@ -1,20 +1,19 @@
 /**
- * Хранилище пользователей
- * Справочник инженеров, администраторов, контактных лиц
- * Используется для назначения исполнителей на заявки
- * Кэширование и обновление при изменении данных
+ * Хранилище компаний-клиентов
+ * Справочник компаний для выбора при создании заявок
+ * Поиск и автодополнение в формах
  */
 
 import { defineStore } from 'pinia'
-//import { usersApi } from '@/api/users.api'
-import globalApiClient from '@/api/axios.config'
+import { organizationsApi } from '@/api/companies.api'
 import { useCache } from '@/utils/cashe.utils'
+//import globalApiClient from '@/api/axios.config'
 
-export const useUsersStore = defineStore('users', {
+export const useOrganizationsStore = defineStore('organizations', {
   state: () => ({
-    users: [],
+    organizations: [],
     loading: false,
-    currentUser: null,
+    currentOrganization: null,
     pagination: null,
     cacheInstance: null,
     lastParams: null
@@ -32,7 +31,7 @@ export const useUsersStore = defineStore('users', {
           invalidateCacheKey,
           clearCache,
           cache
-        } = useCache(5 * 60 * 1000) // 5 минут
+        } = useCache(5 * 60 * 1000)
         
         this.cacheInstance = {
           getCacheKey,
@@ -41,25 +40,25 @@ export const useUsersStore = defineStore('users', {
           saveToCache,
           invalidateCacheKey,
           clearCache,
-          cache
+          cache 
         }
       }
       return this.cacheInstance
     },
 
-    async fetchUsers(params = {}) {
+    async fetchOrganizations(params = {}) {
       this.loading = true
       
       // Получаем методы кэша
       const cache = this.initCache()
-      
-      // Генерируем ключ для кэша
-      const cacheKey = cache.getCacheKey('users', params)
 
+      // Генерируем ключ для кэша
+      const cacheKey = cache.getCacheKey('orgs', params)
+      
       // Проверяем, изменились ли параметры по сравнению с последним запросом
       const paramsChanged = this.lastParams && (
         this.lastParams.search !== params.search ||
-        JSON.stringify(this.lastParams.roles) !== JSON.stringify(params.roles) ||
+        JSON.stringify(this.lastParams.types) !== JSON.stringify(params.types) ||
         this.lastParams.page !== params.page
       )
       
@@ -69,7 +68,7 @@ export const useUsersStore = defineStore('users', {
         const cached = cache.getFromCache(cacheKey)
         
         // Восстанавливаем данные из кэша
-        this.users = cached.data.data || []
+        this.organizations = cached.data.data || []
         this.pagination = cached.pagination
         
         this.loading = false
@@ -79,18 +78,18 @@ export const useUsersStore = defineStore('users', {
       try {
         // Формируем тело запроса
         const requestBody = {
-          user_search: params.search || '',
-          roles: params.roles || (params.role ? [params.role] : []),
+          organization_search: params.search || '',
+          type: params.types || (params.type ? [params.type] : []),
         }
       
-        console.log('📤 Отправка запроса /users/load_users:', requestBody)
+        console.log('📤 Отправка запроса /companies/load_companies:', requestBody)
       
-        const response = await globalApiClient.post('/users/load_users', requestBody)
-      
+        //const response = await globalApiClient.post('/companies/load_companies', requestBody)
+        const response = await organizationsApi.getOrganizations()
         console.log('📥 Ответ от сервера:', response)
       
         if (response.data) {
-          this.users = response.data.data || []
+          this.organizations = response.data.data || []
           this.pagination = {
             current_page: response.data.current_page,
             data: response.data.data,
@@ -107,18 +106,21 @@ export const useUsersStore = defineStore('users', {
             total: response.data.total
           }
           
+          // Если параметры изменились, очищаем старый кэш ПЕРЕД сохранением нового
           if (paramsChanged) {
+            console.log('🔄 Параметры запроса изменились, очищаем старый кэш')
             this.clearCacheByPrefix('orgs')
           }
-  
-          // Сохраняем новые данные
+          
+          // Сохраняем новые данные в кэш
           cache.saveToCache(cacheKey, response.data, this.pagination, response)
 
+          // Сохраняем текущие параметры
           this.lastParams = { ...params }
         }
         return response
       } catch (error) {
-        console.error('❌ Ошибка загрузки пользователей:', error)
+        console.error('❌ Ошибка загрузки организаций:', error)
         throw error
       } finally {
         this.loading = false
@@ -144,13 +146,14 @@ export const useUsersStore = defineStore('users', {
     
     invalidateCacheKey(params) {
       const cache = this.initCache()
-      const cacheKey = cache.getCacheKey('users', params)
+      const cacheKey = cache.getCacheKey('orgs', params)
       cache.invalidateCacheKey(cacheKey)
     },
     
     clearCache() {
       const cache = this.initCache()
       cache.clearCache()
+      this.lastParams = null
     }
   }
 })

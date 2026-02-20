@@ -36,17 +36,18 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Mock данные для входа (пример)
   const mockUsers = {
-    'admin@test.com': { 
-      created_at: "2026-01-31T10:27:16.000000Z",
-      email_verified_at: null,
-      first_name: "Сергей",
+    'user': {  
       id: 1, 
+      created_at: "2026-01-31T10:27:16.000000Z",
+      updated_at: "2026-01-31T10:27:16.000000Z",
+      first_name: "Сергей",
       last_name: 'Левченко',
-      login: "admin",
       middle_name: "Павлович",
       email: 'admin@test.com',
-      role: { id: 1, name: 'Администратор', description: null},
-      updated_at: "2026-01-31T10:27:16.000000Z",
+      role_id: 1,  
+      phone: "79991234567",      
+      organization: "",        
+      object: "Главный офис",                    
     },
     'disp@test.com': { 
       created_at: "2026-01-31T10:27:16.000000Z",

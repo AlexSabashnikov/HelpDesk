@@ -6,9 +6,7 @@
  */
 
 export const usersApi = {
-  async getUsers(params) {
-    const { page = 1, per_page = 10, search = '', role = '' } = params;
-    
+  async getUsers() {
     // Тестовые данные пользователей
     const allUsers = [
       {
@@ -286,94 +284,11 @@ export const usersApi = {
     // Фильтрация по поисковому запросу
     let filteredUsers = [...allUsers];
     
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredUsers = filteredUsers.filter(user => 
-        user.last_name.toLowerCase().includes(searchLower) ||
-        user.first_name.toLowerCase().includes(searchLower) ||
-        user.middle_name?.toLowerCase().includes(searchLower) ||
-        user.login.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        user.phone?.includes(search) ||
-        user.role.name.toLowerCase().includes(searchLower) ||
-        user.organization?.name.toLowerCase().includes(searchLower) ||
-        user.object?.name.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    // Фильтрация по роли
-    if (role) {
-      const roleLower = role.toLowerCase();
-      filteredUsers = filteredUsers.filter(user => 
-        user.role.name.toLowerCase().includes(roleLower)
-      );
-    }
-    
-    // Реальная пагинация по аналогии с tickets.api
-    const start = (page - 1) * per_page;
-    const end = start + per_page;
-    const paginatedData = filteredUsers.slice(start, end);
-    
-    // Формирование ссылок для пагинации Laravel-style
-    const total = filteredUsers.length;
-    const last_page = Math.ceil(total / per_page);
-    
-    const links = [];
-    
-    // Предыдущая страница
-    if (page > 1) {
-      links.push({
-        url: `?page=${page - 1}`,
-        label: '«',
-        active: false
-      });
-    }
-    
-    // Страницы
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(last_page, startPage + maxVisiblePages - 1);
-    
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-      links.push({
-        url: `?page=${i}`,
-        label: i.toString(),
-        active: i === page
-      });
-    }
-    
-    // Следующая страница
-    if (page < last_page) {
-      links.push({
-        url: `?page=${page + 1}`,
-        label: '»',
-        active: false
-      });
-    }
+    const paginatedData = filteredUsers;
     
     // Формируем полный ответ в стиле Laravel Paginator
     return {
       data: paginatedData,
-      current_page: page,
-      last_page: last_page,
-      per_page: per_page,
-      total: total,
-      from: start + 1,
-      to: Math.min(end, total),
-      links: [
-        { url: page > 1 ? `?page=${page - 1}` : null, label: '«', active: false },
-        ...links.filter(link => link.label !== '«' && link.label !== '»'),
-        { url: page < last_page ? `?page=${page + 1}` : null, label: '»', active: false }
-      ],
-      first_page_url: '?page=1',
-      last_page_url: `?page=${last_page}`,
-      next_page_url: page < last_page ? `?page=${page + 1}` : null,
-      prev_page_url: page > 1 ? `?page=${page - 1}` : null,
-      path: '/api/users',
     };
   }
 }

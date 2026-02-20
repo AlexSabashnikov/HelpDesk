@@ -42,9 +42,13 @@ const icons = {
   usersLoadEmpty: 'mdi:account-off-outline',
   userCreate: 'mdi:account-plus-outline',
   userSearch: 'mdi:account-search-outline',
+  organizationsLoadEmpty: 'mdi:briefcase-variant-off-outline',
+  organizationSearch: 'mdi:briefcase-search-outline',
+  organizationCreate: 'mdi:briefcase-plus-outline',
   ticketSearch: 'mdi:email-search-outline',
   filter: 'mdi-filter-outline',
   notificationsBell: 'mdi:notifications',
+  countOffices: 'mdi:office-building-location-outline',
   
   // Действия
   ticketEdit: 'mdi:email-edit-outline',

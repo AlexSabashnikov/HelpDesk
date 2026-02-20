@@ -68,8 +68,6 @@
         </span>
       </UIButton>
 
-
-
       <!-- Кнопка открытия фильтров 
       <div class="filter-section">
         <UsersFilters
@@ -167,12 +165,6 @@ const loadUsers = async () => {
       roles: activeFilters.value.role || [],
     }
     const currentPage = paginationData.value.current_page
-
-    // Проверяем, не совпадает ли с последним запросом
-    if (isSameRequest(params, currentPage)) {
-      console.log('Запрос пропущен (параметры не изменились)')
-      return
-    }
   
     // Сохраняем параметры текущего запроса
     lastRequestParams.value = {
@@ -211,13 +203,6 @@ const loadUsers = async () => {
   }
 }
 
-// Функция для сравнения параметров
-const isSameRequest = (params, page) => {
-  return lastRequestParams.value.search === params.search &&
-        JSON.stringify(lastRequestParams.value.roles) === JSON.stringify(params.roles) &&
-        lastRequestParams.value.page === page
-}
-
 const openCreateModal = () => {
   selectedUser.value = null
   modalMode.value = 'create'
@@ -225,6 +210,7 @@ const openCreateModal = () => {
 }
 
 const handleUserSaved = () => {
+  usersStore.clearCache()
   // Перезагружаем список после сохранения
   loadUsers()
 }

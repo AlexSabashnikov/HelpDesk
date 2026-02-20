@@ -81,6 +81,8 @@ const markAllAsRead = () => {
   cursor: pointer;
 }
 
+
+
 .bell-icon {
   position: relative;
   padding: 8px;
@@ -88,6 +90,11 @@ const markAllAsRead = () => {
 
 .bell{
   color:#ffbb00;
+}
+
+.bell:hover {
+  color:#ecaa02;
+  transform: scale(1.08);
 }
 
 .badge {

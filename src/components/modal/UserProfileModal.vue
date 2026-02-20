@@ -127,7 +127,6 @@
                 option-value="id"
                 placeholder="Введите или выберите объект"
                 :max-length="30"
-                :disabled="!form.organization"
                 @mousedown.prevent="checkObjectAvailability"
               />
               <div v-if="showObjectWarning" class="field-warning">
@@ -204,6 +203,7 @@ const showObjectWarning = ref(false)
 const objectWarningMessage = ref('')
 
 const checkObjectAvailability = (event) => {
+  console.log("dwfefewfw", !form.organization)
   if (!form.organization) {
     showObjectWarning.value = true
     objectWarningMessage.value = 'Сначала выберите организацию'
@@ -451,6 +451,7 @@ async function onSave() {
     let res
     
     if (props.mode === 'create') {
+      console.log(payload)
       res = await profileApi.createUser(payload)
       emit('created', res)
       close()
